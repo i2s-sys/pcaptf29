@@ -1,0 +1,18 @@
+init data completed!
+Macro-F1: 0.5187767731978856
+Micro-F1: 0.689096877217885
+/home/xuke/anaconda3/envs/pcaptf2/lib/python3.7/site-packages/sklearn/metrics/_classification.py:1318: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, msg_start, len(result))
+/home/xuke/anaconda3/envs/pcaptf2/lib/python3.7/site-packages/sklearn/metrics/_classification.py:1318: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, msg_start, len(result))
+/home/xuke/anaconda3/envs/pcaptf2/lib/python3.7/site-packages/sklearn/metrics/_classification.py:1318: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, msg_start, len(result))
+              precision    recall  f1-score   support
+
+          -1       0.00      0.00      0.00         0
+           0       0.85      0.91      0.88      9711
+           1       0.97      0.52      0.68     12833
+
+    accuracy                           0.69     22544
+   macro avg       0.61      0.48      0.52     22544
+weighted avg       0.92      0.69      0.76     22544

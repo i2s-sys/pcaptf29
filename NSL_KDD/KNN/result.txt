@@ -1,0 +1,28 @@
+/home/xuke/anaconda3/envs/pcaptf2/bin/python /home/xuke/zdh/pcap_f50/NSL_KDD/KNN/multiKNN.py
+init data completed!
+k =  1
+Macro-F1: 0.7701031325711278
+Micro-F1: 0.7710255500354861
+k =  3
+Macro-F1: 0.7678419708019613
+Micro-F1: 0.7688520227111426
+k =  5
+Macro-F1: 0.771602233787118
+Micro-F1: 0.7724893541518808
+k =  7
+Macro-F1: 0.7791053904246177
+Micro-F1: 0.7797640170333568
+k =  9
+Macro-F1: 0.7801095695929504
+Micro-F1: 0.7807398864442867
+k =  11 (best)
+Macro-F1: 0.7817024192983999
+Micro-F1: 0.7822924059616749
+k =  13
+Macro-F1: 0.7794698573808443
+Micro-F1: 0.7801188786373314
+k =  15
+Macro-F1: 0.779832127246548
+Micro-F1: 0.7804737402413059
+
+Process finished with exit code 0

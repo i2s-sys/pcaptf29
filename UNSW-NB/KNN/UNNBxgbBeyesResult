@@ -1,0 +1,56 @@
+/home/xuke/anaconda3/envs/pcaptf2/bin/python /home/xuke/traceonly/zdh/pcap_f50/UNSW-NB/KNN/UNNBxgbBeyes.py
+Trial 0: Accuracy = 0.7493, Micro-F1 = 0.7493, Macro-F1 = 0.7311, Selected Features: 37
+Trial 1: Accuracy = 0.7493, Micro-F1 = 0.7493, Macro-F1 = 0.7320, Selected Features: 25
+Trial 2: Accuracy = 0.6866, Micro-F1 = 0.6866, Macro-F1 = 0.6776, Selected Features: 12
+Trial 3: Accuracy = 0.7552, Micro-F1 = 0.7552, Macro-F1 = 0.7366, Selected Features: 8
+Trial 4: Accuracy = 0.7104, Micro-F1 = 0.7104, Macro-F1 = 0.6929, Selected Features: 18
+Trial 5: Accuracy = 0.4209, Micro-F1 = 0.4209, Macro-F1 = 0.4112, Selected Features: 5
+Trial 6: Accuracy = 0.7463, Micro-F1 = 0.7463, Macro-F1 = 0.7309, Selected Features: 29
+Trial 7: Accuracy = 0.7493, Micro-F1 = 0.7493, Macro-F1 = 0.7360, Selected Features: 19
+Trial 8: Accuracy = 0.7522, Micro-F1 = 0.7522, Macro-F1 = 0.7388, Selected Features: 24
+Trial 9: Accuracy = 0.7672, Micro-F1 = 0.7672, Macro-F1 = 0.7519, Selected Features: 16
+Trial 10: Accuracy = 0.7701, Micro-F1 = 0.7701, Macro-F1 = 0.7555, Selected Features: 17
+Trial 11: Accuracy = 0.2746, Micro-F1 = 0.2746, Macro-F1 = 0.2155, Selected Features: 5
+Trial 12: Accuracy = 0.7672, Micro-F1 = 0.7672, Macro-F1 = 0.7535, Selected Features: 19
+Trial 13: Accuracy = 0.7731, Micro-F1 = 0.7731, Macro-F1 = 0.7559, Selected Features: 25
+Trial 14: Accuracy = 0.4328, Micro-F1 = 0.4328, Macro-F1 = 0.4286, Selected Features: 7
+Trial 15: Accuracy = 0.7373, Micro-F1 = 0.7373, Macro-F1 = 0.7227, Selected Features: 22
+Trial 16: Accuracy = 0.6716, Micro-F1 = 0.6716, Macro-F1 = 0.6588, Selected Features: 14
+Trial 17: Accuracy = 0.7552, Micro-F1 = 0.7552, Macro-F1 = 0.7400, Selected Features: 30
+Trial 18: Accuracy = 0.7701, Micro-F1 = 0.7701, Macro-F1 = 0.7555, Selected Features: 16
+Trial 19: Accuracy = 0.7463, Micro-F1 = 0.7463, Macro-F1 = 0.7284, Selected Features: 36
+Trial 20: Accuracy = 0.7194, Micro-F1 = 0.7194, Macro-F1 = 0.7062, Selected Features: 21
+Trial 21: Accuracy = 0.6866, Micro-F1 = 0.6866, Macro-F1 = 0.6723, Selected Features: 22
+Trial 22: Accuracy = 0.7284, Micro-F1 = 0.7284, Macro-F1 = 0.7119, Selected Features: 17
+Trial 23: Accuracy = 0.7552, Micro-F1 = 0.7552, Macro-F1 = 0.7375, Selected Features: 42
+Trial 24: Accuracy = 0.6328, Micro-F1 = 0.6328, Macro-F1 = 0.6238, Selected Features: 22
+Trial 25: Accuracy = 0.7672, Micro-F1 = 0.7672, Macro-F1 = 0.7495, Selected Features: 24
+Trial 26: Accuracy = 0.6239, Micro-F1 = 0.6239, Macro-F1 = 0.6101, Selected Features: 2
+Trial 27: Accuracy = 0.7672, Micro-F1 = 0.7672, Macro-F1 = 0.7486, Selected Features: 31
+Trial 28: Accuracy = 0.7343, Micro-F1 = 0.7343, Macro-F1 = 0.7215, Selected Features: 18
+Trial 29: Accuracy = 0.6925, Micro-F1 = 0.6925, Macro-F1 = 0.6776, Selected Features: 19
+Trial 30: Accuracy = 0.6627, Micro-F1 = 0.6627, Macro-F1 = 0.6507, Selected Features: 12
+Trial 31: Accuracy = 0.7373, Micro-F1 = 0.7373, Macro-F1 = 0.7192, Selected Features: 38
+Trial 32: Accuracy = 0.7373, Micro-F1 = 0.7373, Macro-F1 = 0.7201, Selected Features: 29
+Trial 33: Accuracy = 0.6567, Micro-F1 = 0.6567, Macro-F1 = 0.6410, Selected Features: 20
+Trial 34: Accuracy = 0.6836, Micro-F1 = 0.6836, Macro-F1 = 0.6678, Selected Features: 13
+Trial 35: Accuracy = 0.7343, Micro-F1 = 0.7343, Macro-F1 = 0.7207, Selected Features: 23
+Trial 36: Accuracy = 0.7015, Micro-F1 = 0.7015, Macro-F1 = 0.6848, Selected Features: 24
+Trial 37: Accuracy = 0.7731, Micro-F1 = 0.7731, Macro-F1 = 0.7559, Selected Features: 32
+Trial 38: Accuracy = 0.7791, Micro-F1 = 0.7791, Macro-F1 = 0.7615, Selected Features: 35
+Trial 39: Accuracy = 0.7343, Micro-F1 = 0.7343, Macro-F1 = 0.7146, Selected Features: 35
+Trial 40: Accuracy = 0.6746, Micro-F1 = 0.6746, Macro-F1 = 0.6678, Selected Features: 4
+Trial 41: Accuracy = 0.7343, Micro-F1 = 0.7343, Macro-F1 = 0.7174, Selected Features: 28
+Trial 42: Accuracy = 0.7403, Micro-F1 = 0.7403, Macro-F1 = 0.7220, Selected Features: 13
+Trial 43: Accuracy = 0.7522, Micro-F1 = 0.7522, Macro-F1 = 0.7356, Selected Features: 23
+Trial 44: Accuracy = 0.7612, Micro-F1 = 0.7612, Macro-F1 = 0.7431, Selected Features: 41
+Trial 45: Accuracy = 0.7612, Micro-F1 = 0.7612, Macro-F1 = 0.7439, Selected Features: 38
+Trial 46: Accuracy = 0.7373, Micro-F1 = 0.7373, Macro-F1 = 0.7218, Selected Features: 13
+Trial 47: Accuracy = 0.7463, Micro-F1 = 0.7463, Macro-F1 = 0.7301, Selected Features: 22
+Trial 48: Accuracy = 0.6328, Micro-F1 = 0.6328, Macro-F1 = 0.6264, Selected Features: 4
+Trial 49: Accuracy = 0.7343, Micro-F1 = 0.7343, Macro-F1 = 0.7191, Selected Features: 27
+Best number of features: 35
+Best feature indices: [40  7 15 17  3 28 33 37  6 36 18  5 35 38 11 32  4 24 22 16 41  0 25  8
+ 30 13 19 26 29 20 31 12 27 34 39]
+
+Process finished with exit code 0

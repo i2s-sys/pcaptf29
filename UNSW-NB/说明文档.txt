@@ -1,0 +1,61 @@
+一共45列  42个特征 第一个是id 最后2个标签
+10种类型 9类异常 1类正常
+另一个是 是否攻击的标签 0是不攻击 1是被攻击
+
+执行文件是train_data2.csv
+对应测试文件是train_data2_S.csv
+
+UNSW-NB 15数据集的原始网络数据包是由堪培拉UNSW网络范围实验室的IXIA完美风暴工具创建的，
+用于生成真实的现代正常活动和合成的当代攻击行为的混合体。Tcpdump工具用于捕获100 GB的原始流量（例如，Pcap文件）。
+该数据集有九个攻击家族，即模糊器、分析、后门、DoS、漏洞、通用、侦察、壳码和蠕虫。利用Argus，Bro-IDS工具，
+开发了12种算法来生成总共49个具有类标签的特征。这些特性在UNSW-NB15_freatures.csv文件中都有描述。记录总数为200万个，
+540044条存储在CSV文件40个。ground_truth值表名为UNSW-NB15_GT.CSV，事件文件的列表名为UNSW-NB15_LIST_EVENTS。
+该数据集的分区配置为训练集和测试集，分别为UNSW_NB15_training-set.csv和UNSW_NB15_testing-set。
+训练集中的记录数为175,341条，测试集为82,332条
+
+bit_widths = [32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 1, 32, 32, 32, 32, 1]
+
+bit_widths = [
+    32,  # dur (Float)
+    32,  # proto (Nominal)
+    32,  # service (Nominal)
+    32,  # state (Nominal)
+    32,  # spkts (Integer)
+    32,  # dpkts (Integer)
+    32,  # sbytes (Integer)
+    32,  # dbytes (Integer)
+    32,  # rate (Float)
+    32,  # sttl (Integer)
+    32,  # dttl (Integer)
+    32,  # sload (Float)
+    32,  # dload (Float)
+    32,  # sloss (Integer)
+    32,  # dloss (Integer)
+    32,  # sinpkt (Float)
+    32,  # dinpkt (Float)
+    32,  # sjit (Float)
+    32,  # djit (Float)
+    32,  # swin (Integer)
+    32,  # stcpb (Integer)
+    32,  # dtcpb (Integer)
+    32,  # dwin (Integer)
+    32,  # tcprtt (Float)
+    32,  # synack (Float)
+    32,  # ackdat (Float)
+    32,  # smean (Integer)
+    32,  # dmean (Integer)
+    32,  # trans_depth (Integer)
+    32,  # response_body_len (Integer)
+    32,  # ct_srv_src (Integer)
+    32,  # ct_state_ttl (Integer)
+    32,  # ct_dst_ltm (Integer)
+    32,  # ct_src_dport_ltm (Integer)
+    32,  # ct_dst_sport_ltm (Integer)
+    32,  # ct_dst_src_ltm (Integer)
+    1,   # is_ftp_login (Binary)
+    32,  # ct_ftp_cmd (Integer)
+    32,  # ct_flw_http_mthd (Integer)
+    32,  # ct_src_ltm (Integer)
+    32,  # ct_srv_dst (Integer)
+    1    # is_sm_ips_ports (Binary)
+]
