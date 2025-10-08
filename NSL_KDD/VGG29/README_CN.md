@@ -79,9 +79,6 @@ run_vgg_training.bat 1 cb_focal_loss 3 25 beyes
 ```bash
 # 特征选择训练
 cd FeatureSelect
-python pcapTrainVGG_ES3_1.py  # K=1
-python pcapTrainVGG_ES3_2.py  # K=2
-
 # 损失函数实验
 cd Loss
 python pcapTrainVGG_ce.py

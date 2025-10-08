@@ -27,7 +27,11 @@ set_deterministic_seed(SEED)
 TRAIN_EPOCH = 30
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
+# InfFS_S 方法选择的特征
+# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] 32
+# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40] 24
+# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25] 16
+# [4,5,0,22,32,31,23,15] 8
 if __name__ == '__main__':
     # GPU configuration for TensorFlow 2.x
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -37,10 +41,9 @@ if __name__ == '__main__':
                 tf.config.experimental.set_memory_growth(gpu, True)
         except RuntimeError as e:
             print(e)
-    
-    # 示例：使用前16个最重要的特征
+
     # 在实际使用中，这些特征应该从第一阶段训练的结果中获取
-    selected_features = list(range(16))  # 选择前16个特征作为示例
+    selected_features = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25]   # inf_fs_s方法
     print(f"选择的特征: {selected_features}")
     
     curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())

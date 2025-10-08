@@ -234,6 +234,20 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="xuke@10.157.68.40:2344 agent (6)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="xuke@10.157.68.40:2344 agent (7)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="xuke@10.157.68.40:41565 agent">
         <serverdata>
           <mappings>

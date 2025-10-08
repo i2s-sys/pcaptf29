@@ -26,7 +26,7 @@ BETA = 0.9999 # 类平衡损失的β gamma 使用cb 因为cb效果最好
 GAMMA = 1
 
 LEARNING_RATE = 0.0001
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 TRAIN_FILE = '../../train_data.csv'
 TEST_FILE = '../../test_data.csv'
 
@@ -402,13 +402,12 @@ class Resnet():
         return macro_f1, micro_f1
 
 class ResNetModel2(Model):
-    def __init__(self, dim, selected_features=[], seed=25):
+    def __init__(self, dim, selected_features, seed=25):
         super(ResNetModel2, self).__init__()
         self.dim = dim
         self.selected_features = selected_features
         self.seed = seed
-        
-        # Build the ResNet architecture
+        self._is_built = False
         self.conv_layer = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same',
                                         kernel_initializer=tf.keras.initializers.glorot_uniform(seed=self.seed))
         self.stm = Sequential([
@@ -434,7 +433,7 @@ class ResNetModel2(Model):
         return res_blocks
     
     def call(self, inputs, training=None):
-        scaled_input = tf.reshape(inputs, [-1, self.dim, 1, 1])
+        scaled_input = tf.reshape(inputs, [tf.shape(inputs)[0], self.dim, 1, 1])
         x = self.stm(scaled_input, training=training)
         x = self.layer1(x, training=training)
         x = self.layer2(x, training=training)
@@ -589,20 +588,12 @@ class Resnet2(): # 第二次训练
                 label0_data.append(data)
             if data[-1] == 1:
                 label1_data.append(data)
-            if data[-1] == 2:
-                label2_data.append(data)
-            if data[-1] == 3:
-                label3_data.append(data)
-            if data[-1] == 4:
-                label4_data.append(data)
-            if data[-1] == 5:
-                label5_data.append(data)
             if self.label_status.get(str(int(data[-1])), 0) > 0:
                 self.label_status[str(int(data[-1]))] += 1
             else:
                 self.label_status[str(int(data[-1]))] = 1
         
-        self.train_data = label0_data + label1_data + label2_data + label3_data + label4_data + label5_data
+        self.train_data = label0_data + label1_data
         
         filename = TEST_FILE
         csv_reader = csv.reader(open(filename))

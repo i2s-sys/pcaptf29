@@ -25,15 +25,15 @@
 #
 # selected_features = [10, 15, 25, 64, 20, 44, 42, 16, 21, 26, 35, 22, 39, 43, 17, 9, 27, 31, 45, 6, 14, 18, 12, 67, 49, 24, 38, 40, 19, 66,
 #  68, 48]
-# dnn2 = Resnet2(dim=len(selected_features), selected_features=selected_features,seed=SEED)
+# res2 = Resnet2(dim=len(selected_features), selected_features=selected_features,seed=SEED)
 #     start_time = time.time()
 #     for _ in range(TRAIN_EPOCH):
-#         delta_loss, count = dnn2.train()
-#         dnn2.epoch_count += 1
+#         delta_loss, count = res2.train()
+#         res2.epoch_count += 1
 #     end_time = time.time()
 #     total_training_time = end_time - start_time
-#     print("dnn2_loss_history", dnn2.loss_history)
-#     print("dnn2_macro_F1List", dnn2.macro_F1List)
-#     print("dnn2_micro_F1List", dnn2.micro_F1List)
+#     print("dnn2_loss_history", res2.loss_history)
+#     print("dnn2_macro_F1List", res2.macro_F1List)
+#     print("dnn2_micro_F1List", res2.micro_F1List)
 #     print('start testing...')
-#     accuracy2 = dnn2.test()
+#     accuracy2 = res2.test()

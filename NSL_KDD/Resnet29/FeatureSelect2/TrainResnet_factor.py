@@ -52,6 +52,7 @@ feature_widths = [
     32, 32, 32          # f_ht_len, b_ht_len, d_ht_len 18
 ]
 
+
 curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
 model = Resnet(K, ES_THRESHOLD, SEED)
 start_time = time.time()

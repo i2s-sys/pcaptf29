@@ -91,14 +91,14 @@ with model.sess as sess:
     # selected_features = top_k_indices
     # sess.close() # 关闭会话以释放内存 # 重新启动会话
     # sess = tf.compat.v1.Session(config=config)
-    # dnn2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
+    # res2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
     # print('start retraining...')
     #
     # start_time = time.time()
     # for _ in range(TRAIN_EPOCH):
-    #     dnn2.train()
-    #     dnn2.epoch_count += 1
+    #     res2.train()
+    #     res2.epoch_count += 1
     # end_time = time.time()
     # total_training_time = end_time - start_time
-    # print("dnn2_loss_history", dnn2.loss_history)
-    # dnn2.test()
+    # print("dnn2_loss_history", res2.loss_history)
+    # res2.test()

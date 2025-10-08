@@ -22,8 +22,6 @@ def main():
         'beyes/BeyesVGG.py',
         'beyes/VGG2.py',
         'FeatureSelect/pcapVGGSeed.py',
-        'FeatureSelect/pcapTrainVGG_ES3_1.py',
-        'FeatureSelect/pcapTrainVGG_ES3_2.py',
         'Loss/pcapVGGSeed.py',
         'Loss/pcapTrainVGG_ce.py'
     ]
