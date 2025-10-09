@@ -1,38 +1,43 @@
+# TensorFlow 2.9.0 compatible training script with early stopping for UNSW-IoT
+import sys
 import time
 import tensorflow as tf
 import numpy as np
-import csv, os, random
-from pcapResnetPacketSeed import Resnet2
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-from tensorflow.keras.backend import clear_session
-# 在import tensorflow之后添加
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
+import csv, os
+from pcapResnetPacketSeed import Resnet, Resnet2
+import matplotlib.pyplot as plt
+
+# 设置环境变量
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
+
+# 配置GPU内存增长
+def configure_gpu():
+    """配置GPU设置"""
     try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=0.5 * 1024 * 1024 * 1024)]  # 假设GPU显存为16GB，这里限制为70%
-        )
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        print(e)
-# 设置随机种子确保结果可复现
-def set_deterministic_seed(seed):
-    """设置所有随机种子确保结果可复现"""
-    tf.keras.utils.set_random_seed(seed)
-    tf.config.experimental.enable_op_determinism()
-    tf.random.set_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            print(f"GPU配置成功: {len(gpus)} 个GPU")
+            return True
+        else:
+            print("未检测到GPU，将使用CPU")
+            return False
+    except Exception as e:
+        print(f"GPU配置失败: {e}")
+        return False
+
+# 执行GPU配置
+gpu_available = configure_gpu()
 
 # 获取当前脚本的文件名
 file_name = os.path.basename(__file__)
 print(f"当前脚本的文件名是: {file_name}")
 
 SEED = 25
-set_deterministic_seed(SEED)
-
+DATA_DIM = 72 # 特征数
+K = 24 # topk 特征
 WIDTHLITMIT = 1024 # 位宽限制加大
 TRAIN_EPOCH = 30
 ES_THRESHOLD = 3
@@ -49,17 +54,17 @@ feature_widths = [
     32, 32, 32, 32,         # bfpnum_rate, fpnum_s, bpnum_s, dpnum_s 22
     64, 32, 32, 32, 32,  # fpl_total, fpl_mean, fpl_min, fpl_max, fpl_std
     64, 32, 32, 32, 32,  # bpl_total, bpl_mean, bpl_min, bpl_max, bpl_std
-    64, 32, 32, 32, 32,  # dpl_total, dpl_mean, dpl_min, dpl_max, dpl_std
+    64, 32, 32, 32, 32,  # dpl_total, dpl_mean, dpl_min, dpl_max, dwin_std
     32, 32, 32, 32,         # bfpl_rate, fpl_s, bpl_s, dpl_s  19
     16, 16, 16, 16, 16, 16, 16, 16,  # fin_cnt, syn_cnt, rst_cnt, pst_cnt, ack_cnt, urg_cnt, cwe_cnt, ece_cnt
     16, 16, 16, 16,     # fwd_pst_cnt, fwd_urg_cnt, bwd_pst_cnt, bwd_urg_cnt
     16, 16, 16,         # fp_hdr_len, bp_hdr_len, dp_hdr_len
     32, 32, 32          # f_ht_len, b_ht_len, d_ht_len 18
 ]
-# InfFS_S 方法选择的特征iot
-#
+
+curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+k = K
 # 提取前 k 个特征的下标和因子值
-k = 16
 sorted_indices = [50,23,18,13,45,40,35,26,16,21,31,12,19,14,20,24,15,27,17,22,25,10,9,68,66,67,38,43,41,36,42,47]
 top_k_indices = sorted_indices[:k]
 print("K=", k, "top_k_indices", top_k_indices)
