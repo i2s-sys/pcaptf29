@@ -5,7 +5,7 @@ import numpy as np
 import csv, os, random
 from pcapVGGSeed import VGG2
 import matplotlib.pyplot as plt
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 # 设置随机种子确保结果可复现
 def set_deterministic_seed(seed):
@@ -46,10 +46,11 @@ feature_widths = [
     32, 32, 32  # f_ht_len, b_ht_len, d_ht_len 18
 ]
 # InfFS_S 方法选择的特征
-# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] 32
-# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40] 24
-# [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25] 16
-# [4,5,0,22,32,31,23,15] 8
+# features = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] # infs 32
+features = [35, 27, 31, 25, 23, 22, 15, 16, 8, 6, 1, 9, 12, 14, 5, 38, 39, 3, 21, 36, 32, 13, 34, 10, 2, 20, 4, 18, 11, 26, 0, 17]   # pso
+# features = [31, 22, 24, 26, 10, 35, 8, 21, 25, 2, 1, 12, 4, 32, 3, 16, 9, 28, 17, 34, 15, 14, 20, 27, 13, 23, 5, 0, 37, 38, 39, 40] # sca
+# features = [39, 38, 36, 32, 28, 26, 31, 18, 10, 15, 16, 2, 22, 11, 6, 12, 19, 33, 8, 29, 14, 20, 17, 9, 35, 21, 34, 5, 37, 4, 24, 1] # fpa
+k = 32
 if __name__ == '__main__':
     # GPU configuration for TensorFlow 2.x
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -59,10 +60,7 @@ if __name__ == '__main__':
                 tf.config.experimental.set_memory_growth(gpu, True)
         except RuntimeError as e:
             print(e)
-
-    k = 32
-    sorted_indices = [4, 5, 0, 22, 32, 31, 23, 15, 12, 2, 3, 9, 11, 16, 33, 25, 24, 38, 37, 28, 1, 27, 26, 40, 35, 39, 30, 7, 34, 29, 36, 18]
-    top_k_indices = sorted_indices[:k]
+    top_k_indices = features[:k]
     print("K=", len(top_k_indices), "top_k_indices", top_k_indices)
     selected_features = top_k_indices
 

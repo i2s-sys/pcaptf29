@@ -1,14 +1,14 @@
-# TensorFlow 2.9.0 compatible second training script for UNSW-IoT VGG
+# TensorFlow 2.9.0 compatible training script with early stopping for UNSW-IoT VGG
 import sys
 import time
 import tensorflow as tf
 import numpy as np
 import csv, os
-from pcapVGG2Seed import VGG2
+from pcapVGGSeed import VGG, VGG2
 import matplotlib.pyplot as plt
 
 # 设置环境变量
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
 
 # 配置GPU内存增长
@@ -36,10 +36,12 @@ file_name = os.path.basename(__file__)
 print(f"当前脚本的文件名是: {file_name}")
 
 SEED = 25
+K = 32 # topk 特征
 WIDTHLITMIT = 1024 # 位宽限制加大
-TRAIN_EPOCH = 30
+TRAIN_EPOCH = 3
+ES_THRESHOLD = 3
 
-feature_widths = [ 
+feature_widths = [
     32, 32, 32, 32,  # fiat_mean, fiat_min, fiat_max, fiat_std
     32, 32, 32, 32,  # biat_mean, biat_min, biat_max, biat_std
     32, 32, 32, 32,  # diat_mean, diat_min, diat_max, diat_std
@@ -60,29 +62,44 @@ feature_widths = [
 ]
 
 curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
-
-K = 32 # topk 特征
-# 使用预定义的特征选择结果
-# sorted_indices = [50,23,18,13,45,40,35,26,16,21,31,12,19,14,20,24,15,27,17,22,25,10,9,68,66,67,38,43,41,36,42,47] # infs
-# sorted_indices = [71, 69, 68, 65, 61, 59, 58, 57, 55, 53, 50, 48, 43, 37, 34, 30, 25, 24, 23, 21, 20, 19, 17, 16, 15, 14, 13, 9, 8, 5, 4, 0] # pso
-# sorted_indices = [14, 70, 3, 12, 62, 55, 23, 25, 61, 20, 51, 56, 24, 18, 15, 21, 48, 13, 17, 9, 59, 26, 32, 68, 5, 67, 66, 71, 8, 7, 69, 65] # sca
-sorted_indices = [60, 34, 13, 62, 11, 10, 24, 70, 61, 12, 30, 27, 28, 14, 15, 68, 26, 2, 52, 65, 22, 7, 18, 45, 67, 53, 4, 35, 20, 55, 21, 19] # fpa
-
-top_k_indices = sorted_indices[:K]
-print("K=",K,"top_k_indices",top_k_indices)
-selected_features = top_k_indices
-
-vgg2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
-print('start retraining...')
-
+model = VGG(K,"cb_focal_loss",ES_THRESHOLD,SEED)
 start_time = time.time()
+
 for _ in range(TRAIN_EPOCH):
-    vgg2.train()
-    vgg2.epoch_count += 1
+    model.train()
+    model.epoch_count += 1
+    # if model.earlyStop == True:
+    #     print("model.earlyStop == True")
+    #     scaling_factor_value = model.model.scaling_factor.numpy()
+    #     sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
+    #     top_k_indices = sorted_indices[:K]
+    #     print("sorted_indices：", top_k_indices)
+    #     model.earlyStop = False
+
 end_time = time.time()
 total_training_time = end_time - start_time
-print("vgg2_loss_history", vgg2.loss_history)
-print("vgg2_macro_F1List", vgg2.macro_F1List)
-print("vgg2_micro_F1List", vgg2.micro_F1List)
+print("TSMRecord—100",model.TSMRecord)
+print("loss_history—100",model.loss_history)
+print(f"Total training time: {total_training_time:.2f} seconds")
+
+# 保存模型
+model_dir = "./model"
+new_folder = "model_" + curr_time
+os.makedirs(os.path.join(model_dir, new_folder), exist_ok=True)
+
+model_path = os.path.join(model_dir, new_folder, "model")
+model.model.save_weights(model_path)
+
+# 获取scaling factor值
+scaling_factor_value = model.model.scaling_factor.numpy()
+print('scaling_factor_value：',scaling_factor_value)
 print('start testing...')
-accuracy2 = vgg2.test()
+
+# 扁平化矩阵，并返回排序后的索引
+sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
+print("sorted_indices：",sorted_indices)
+macroF1, microF1 = model.test2()
+print("loss_history", model.loss_history)
+print("macro_F1List", model.macro_F1List)
+print("micro_F1List", model.micro_F1List)
+

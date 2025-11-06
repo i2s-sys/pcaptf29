@@ -103,23 +103,23 @@ print("loss_history", model.loss_history)
 print("macro_F1List", model.macro_F1List)
 print("micro_F1List", model.micro_F1List)
 
-print('starting retraining')
-k = K
-# 提取前 k 个特征的下标和因子值
-top_k_indices = sorted_indices[:k]
-print("K=",k,"top_k_indices",top_k_indices)
-selected_features = top_k_indices
-vgg2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
-print('start retraining...')
-
-start_time = time.time()
-for _ in range(TRAIN_EPOCH):
-    vgg2.train()
-    vgg2.epoch_count += 1
-end_time = time.time()
-total_training_time = end_time - start_time
-print("vgg2_loss_history", vgg2.loss_history)
-print("vgg2_macro_F1List", vgg2.macro_F1List)
-print("vgg2_micro_F1List", vgg2.micro_F1List)
-print('start testing...')
-accuracy2 = vgg2.test()
+# print('starting retraining')
+# k = K
+# # 提取前 k 个特征的下标和因子值
+# top_k_indices = sorted_indices[:k]
+# print("K=",k,"top_k_indices",top_k_indices)
+# selected_features = top_k_indices
+# vgg2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
+# print('start retraining...')
+#
+# start_time = time.time()
+# for _ in range(TRAIN_EPOCH):
+#     vgg2.train()
+#     vgg2.epoch_count += 1
+# end_time = time.time()
+# total_training_time = end_time - start_time
+# print("vgg2_loss_history", vgg2.loss_history)
+# print("vgg2_macro_F1List", vgg2.macro_F1List)
+# print("vgg2_micro_F1List", vgg2.micro_F1List)
+# print('start testing...')
+# accuracy2 = vgg2.test()

@@ -75,7 +75,7 @@ with model.sess as sess:
     print('start testing...')
     # 扁平化矩阵，并返回排序后的索引
     sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
-    K_values = [1, 2, 4, 8, 16, 24, 32]
+    K_values = [32]
     for K in K_values:
         top_k_indices = sorted_indices[:K]
         print(f"K = {K}, top_k_indices = {top_k_indices}")

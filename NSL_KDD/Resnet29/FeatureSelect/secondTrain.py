@@ -3,10 +3,12 @@ import time
 import tensorflow as tf
 import numpy as np
 import csv, os, random
-from pcapResnetPacketSeed import Resnet, Resnet2
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+from pcapResnetPacketSeed import Resnet2
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 # 在import tensorflow之后添加
 gpus = tf.config.experimental.list_physical_devices('GPU')
+
 if gpus:
     try:
         # 限制GPU显存占用为70%
@@ -30,7 +32,7 @@ SEED = 25
 # 设置随机种子
 set_deterministic_seed(SEED)
 
-K = 16 # topk 特征
+
 WIDTHLITMIT = 1024 # 位宽限制加大
 TRAIN_EPOCH = 30
 ES_THRESHOLD = 3
@@ -59,11 +61,16 @@ feature_widths = [
 ]
 
 '''choose top K feature '''
+K = 24 # topk 特征
 k = K
 # 提取前 k 个特征的下标和因子值
-# InfFS_S 方法选择的特征
-sorted_indices = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18]
-top_k_indices = sorted_indices[:K]
+# features = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] # infs 32
+# features = [35, 27, 31, 25, 23, 22, 15, 16, 8, 6, 1, 9, 12, 14, 5, 38, 39, 3, 21, 36, 32, 13, 34, 10, 2, 20, 4, 18, 11, 26, 0, 17]   # pso
+features = [31, 22, 24, 26, 10, 35, 8, 21, 25, 2, 1, 12, 4, 32, 3, 16, 9, 28, 17, 34, 15, 14, 20, 27, 13, 23, 5, 0, 37, 38, 39, 40] # sca
+# features = [39, 38, 36, 32, 28, 26, 31, 18, 10, 15, 16, 2, 22, 11, 6, 12, 19, 33, 8, 29, 14, 20, 17, 9, 35, 21, 34, 5, 37, 4, 24, 1] # fpa
+
+
+top_k_indices = features[:K]
 print(f"K={K}, top_k_indices={top_k_indices}")
 selected_features = top_k_indices
 model2 = Resnet2(dim=len(selected_features), selected_features=selected_features, seed=SEED)
