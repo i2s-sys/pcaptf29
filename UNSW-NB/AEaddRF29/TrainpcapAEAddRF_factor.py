@@ -48,12 +48,23 @@ start_time = time.time()
 for epoch in range(TRAIN_EPOCH):
     ae.train()
     ae.epoch_count += 1
-    if ae.earlyStop:
-        print(f"Early stopping at epoch {epoch + 1}")
-        break
+    # if ae.earlyStop:
+    #     print(f"Early stopping at epoch {epoch + 1}")
+    #     break
 end_time = time.time()
 total_training_time = end_time - start_time
-print("ae_loss_history", ae.loss_history)
-print("ae_TSMRecord", ae.TSMRecord)
+
+scaling_factor_value = ae.model.scaling_factor.numpy()
+scaling_factor_value = scaling_factor_value.flatten()
+print('scaling_factor_value：',scaling_factor_value)
+print('total_training_time：',total_training_time)
+print('start testing...')
+# 扁平化矩阵，并返回排序后的索引
+sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
+K_values = [32]
+for K in K_values:
+    top_k_indices = sorted_indices[:K]
+print(top_k_indices)
+
 print('start testing...')
 ae.train_classifier()

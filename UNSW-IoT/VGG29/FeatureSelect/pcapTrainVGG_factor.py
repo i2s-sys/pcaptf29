@@ -38,7 +38,7 @@ print(f"当前脚本的文件名是: {file_name}")
 SEED = 25
 K = 32 # topk 特征
 WIDTHLITMIT = 1024 # 位宽限制加大
-TRAIN_EPOCH = 3
+TRAIN_EPOCH = 30
 ES_THRESHOLD = 3
 
 feature_widths = [
@@ -97,9 +97,6 @@ print('start testing...')
 
 # 扁平化矩阵，并返回排序后的索引
 sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
-print("sorted_indices：",sorted_indices)
+print("sorted_indices：",sorted_indices[:K])
 macroF1, microF1 = model.test2()
-print("loss_history", model.loss_history)
-print("macro_F1List", model.macro_F1List)
-print("micro_F1List", model.micro_F1List)
 

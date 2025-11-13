@@ -1,4 +1,4 @@
-# TensorFlow 2.9.0 compatible training script with early stopping
+# TensorFlow 2.9.0 compatible training script with early stopping for UNSW-IoT (no stop version)
 import sys
 import time
 import tensorflow as tf
@@ -8,7 +8,7 @@ from pcapResnetPacketSeed import Resnet, Resnet2
 import matplotlib.pyplot as plt
 
 # 设置环境变量
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
 
 # 配置GPU内存增长
@@ -36,8 +36,8 @@ file_name = os.path.basename(__file__)
 print(f"当前脚本的文件名是: {file_name}")
 
 SEED = 25
-
-K = 2 # topk 特征
+DATA_DIM = 72 # 特征数
+K = 32 # topk 特征
 WIDTHLITMIT = 1024 # 位宽限制加大
 TRAIN_EPOCH = 30
 ES_THRESHOLD = 2
@@ -54,7 +54,7 @@ feature_widths = [
     32, 32, 32, 32,         # bfpnum_rate, fpnum_s, bpnum_s, dpnum_s 22
     64, 32, 32, 32, 32,  # fpl_total, fpl_mean, fpl_min, fpl_max, fpl_std
     64, 32, 32, 32, 32,  # bpl_total, bpl_mean, bpl_min, bpl_max, bpl_std
-    64, 32, 32, 32, 32,  # dpl_total, dpl_mean, dpl_min, dwin_max, dwin_std
+    64, 32, 32, 32, 32,  # dpl_total, dpl_mean, dpl_min, dpl_max, dwin_std
     32, 32, 32, 32,         # bfpl_rate, fpl_s, bpl_s, dpl_s  19
     16, 16, 16, 16, 16, 16, 16, 16,  # fin_cnt, syn_cnt, rst_cnt, pst_cnt, ack_cnt, urg_cnt, cwe_cnt, ece_cnt
     16, 16, 16, 16,     # fwd_pst_cnt, fwd_urg_cnt, bwd_pst_cnt, bwd_urg_cnt
@@ -63,15 +63,17 @@ feature_widths = [
 ]
 
 curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+
 model = Resnet(K, ES_THRESHOLD, SEED)
 start_time = time.time()
 
+# 训练模型
 for _ in range(TRAIN_EPOCH):
     delta_loss, count = model.train()
     model.epoch_count += 1
-    if model.earlyStop == True:
-        print("model.earlyStop == True")
-        break
+    # if model.earlyStop == True:
+    #     print("model.earlyStop == True")
+    #     break
 
 end_time = time.time()
 total_training_time = end_time - start_time
@@ -80,7 +82,7 @@ print("loss_history—100", model.loss_history)
 print(f"Total training time: {total_training_time:.2f} seconds")
 
 # 保存模型
-model_dir = "./model"
+model_dir = "model"
 new_folder = "model_" + curr_time
 os.makedirs(os.path.join(model_dir, new_folder), exist_ok=True)
 
@@ -92,10 +94,9 @@ scaling_factor_value = model.model.scaling_factor.numpy()
 print('scaling_factor_value：', scaling_factor_value)
 print('start testing...')
 
-# 扁平化矩阵，并返回排序后的索引
 sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
 print("sorted_indices：", sorted_indices)
-model.test()
+macroF1, microF1 = model.test2()
 print("loss_history", model.loss_history)
 print("macro_F1List", model.macro_F1List)
 print("micro_F1List", model.micro_F1List)
@@ -103,21 +104,6 @@ print("micro_F1List", model.micro_F1List)
 print('starting retraining')
 '''choose top K feature '''
 k = K
-# 提取前 k 个特征的下标和因子值
 top_k_indices = sorted_indices[:k]
 print("K=", k, "top_k_indices", top_k_indices)
-selected_features = top_k_indices
-dnn2 = Resnet2(dim=len(selected_features), selected_features=selected_features, seed=SEED)
-print('start retraining...')
 
-start_time = time.time()
-for _ in range(TRAIN_EPOCH):
-    delta_loss, count = dnn2.train()
-    dnn2.epoch_count += 1
-end_time = time.time()
-total_training_time = end_time - start_time
-print("dnn2_loss_history", dnn2.loss_history)
-print("dnn2_macro_F1List", dnn2.macro_F1List)
-print("dnn2_micro_F1List", dnn2.micro_F1List)
-print('start testing...')
-accuracy2 = dnn2.test()

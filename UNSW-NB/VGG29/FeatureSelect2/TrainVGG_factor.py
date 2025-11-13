@@ -99,7 +99,7 @@ if best_model_path:
     # 扁平化矩阵，并返回排序后的索引
     sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
     '''choose top K feature '''
-    K_values = [1, 2, 4, 8, 16, 24, 32]
+    K_values = [32]
     for K in K_values:
         top_k_indices = sorted_indices[:K]
         print(f"K = {K}, selected_features = {top_k_indices}")

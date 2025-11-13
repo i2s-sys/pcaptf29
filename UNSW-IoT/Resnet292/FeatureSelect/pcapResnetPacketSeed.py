@@ -308,7 +308,7 @@ class Resnet():
             label_data[label].append(data)
             self.label_status[str(label)] = self.label_status.get(str(label), 0) + 1
         
-        with open('../train_data.csv', mode="r", encoding="utf-8") as f:
+        with open('../../train_data.csv', mode="r", encoding="utf-8") as f:
             csv_reader = csv.reader(f)
             next(csv_reader)  # Skip header if exists
             for row in csv_reader:
@@ -316,7 +316,7 @@ class Resnet():
         
         self.train_data = [data for label in label_data.values() for data in label]
 
-        with open('../test_data.csv', mode="r", encoding="utf-8") as f:
+        with open('../../test_data.csv', mode="r", encoding="utf-8") as f:
             csv_reader = csv.reader(f)
             self.test_data = [
                 [0 if char == 'None' else np.float32(char) for char in row]

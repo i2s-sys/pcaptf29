@@ -37,7 +37,6 @@ print(f"当前脚本的文件名是: {file_name}")
 
 SEED = 25
 
-K = 16 # topk 特征
 WIDTHLITMIT = 1024 # 位宽限制加大
 TRAIN_EPOCH = 30
 ES_THRESHOLD = 3
@@ -63,8 +62,14 @@ feature_widths = [
 ]
 
 curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
-# InfFS_S 方法选择的特征
-sorted_indices = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18]
+
+# sorted_indices = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] # infs 32
+sorted_indices = [35, 27, 31, 25, 23, 22, 15, 16, 8, 6, 1, 9, 12, 14, 5, 38, 39, 3, 21, 36, 32, 13, 34, 10, 2, 20, 4, 18, 11, 26, 0, 17]   # pso
+# sorted_indices = [31, 22, 24, 26, 10, 35, 8, 21, 25, 2, 1, 12, 4, 32, 3, 16, 9, 28, 17, 34, 15, 14, 20, 27, 13, 23, 5, 0, 37, 38, 39, 40] # sca
+# sorted_indices = [39, 38, 36, 32, 28, 26, 31, 18, 10, 15, 16, 2, 22, 11, 6, 12, 19, 33, 8, 29, 14, 20, 17, 9, 35, 21, 34, 5, 37, 4, 24, 1] # fpa
+# sorted_indices = [36,39,9,23,22,40,34,0,32,38,2,10,29,37,16,31,1,7,30,18,33,21,17,27,24,3,26,13,25,35,6,14] # factor
+K = 32 # topk 特征
+
 top_k_indices = sorted_indices[:K]
 selected_features = top_k_indices
 dnn2 = Resnet2(dim=len(selected_features), selected_features=selected_features, seed=SEED)

@@ -60,6 +60,9 @@ start_time = time.time()
 for _ in range(TRAIN_EPOCH):
     delta_loss, count = model.train()
     model.epoch_count += 1
+    # if model.earlyStop == True:
+    #     print("model.earlyStop == True")
+    #     break
 
 end_time = time.time()
 total_training_time = end_time - start_time  # 计算训练总时长
@@ -67,15 +70,6 @@ model.test()
 print("TSMRecord—100", model.TSMRecord)
 print("loss_history—100", model.loss_history)
 print(f"Total training time: {total_training_time:.2f} seconds")
-
-model_dir = "./model"
-new_folder = "model_" + curr_time
-os.mkdir(os.path.join(model_dir, new_folder))
-
-model_path = os.path.join(model_dir, new_folder, "model.h5")
-
-# TensorFlow 2.9.0 compatible model saving
-model.model.save(model_path)
 
 scaling_factor_value = model.model.scaling_factor.numpy()
 print('scaling_factor_value：', scaling_factor_value)
@@ -85,7 +79,7 @@ print('start testing...')
 sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
 
 '''choose top K feature '''
-K_values = [1, 2, 4, 8, 16, 24, 32]
+K_values = [32]
 for K in K_values:
     top_k_indices = sorted_indices[:K]
     print(f"K = {K}, selected_features = {top_k_indices}")

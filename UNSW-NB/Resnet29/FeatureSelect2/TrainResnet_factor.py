@@ -6,10 +6,9 @@ import tensorflow as tf
 import numpy as np
 import csv, os
 from pcapResnetSeed_factor import Resnet
-import matplotlib.pyplot as plt
 
 # 设置环境变量
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
 
 # 配置GPU内存增长
@@ -85,10 +84,10 @@ for epoch in range(TRAIN_EPOCH):
         best_accuracy = accuracy
         best_model_path = os.path.join(model_dir, new_folder2, f"model_best_epoch_{model.epoch_count}.ckpt")
         model.model.save_weights(best_model_path)
-    
-    if model.earlyStop:
-        print(f"Early stopping at epoch {epoch + 1}")
-        break
+
+    # if model.earlyStop:
+    #     print(f"Early stopping at epoch {epoch + 1}")
+    #     break
 
 end_time = time.time()
 total_training_time = end_time - start_time
@@ -108,7 +107,7 @@ if best_model_path:
     # 扁平化矩阵，并返回排序后的索引
     sorted_indices = np.argsort(scaling_factor_value.flatten())[::-1]
     '''choose top K feature '''
-    K_values = [1, 2, 4, 8, 16, 24, 32]
+    K_values = [32]
     for K in K_values:
         top_k_indices = sorted_indices[:K]
         print(f"K = {K}, selected_features = {top_k_indices}")

@@ -25,8 +25,8 @@ DATA_DIM = 42  # 特征
 OUTPUT_DIM = 2
 LEARNING_RATE = 0.0001
 BATCH_SIZE = 128
-TRAIN_FILE = '../../train_data2.csv'
-TEST_FILE = '../../test_data2.csv'
+TRAIN_FILE = '../../train_data.csv'
+TEST_FILE = '../../test_data.csv'
 
 MODEL_SAVE_PATH = './model/'
 MODEL_SAVE_PATH2 = './model2/'

@@ -36,7 +36,7 @@ file_name = os.path.basename(__file__)
 print(f"当前脚本的文件名是: {file_name}")
 
 SEED = 25
-K = 32 # topk 特征
+K = 16 # topk 特征
 TRAIN_EPOCH = 30
 
 curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
@@ -45,7 +45,9 @@ curr_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
 # sorted_indices = [20,21,11,12,6,8,7,29,17,15,18,16,27,26,4,19,22,10,5,9,13,14,1,35,40,30,39,32,33,0,34,2] # infs
 # sorted_indices = [33, 35, 31, 32, 13, 10, 15, 17, 4, 40, 12, 18, 1, 0, 19, 9, 26, 2, 37, 7, 30, 14, 5, 22, 6, 27, 38, 34, 16, 36, 28, 41] # pso 32f
 # sorted_indices = [38, 37, 29, 2, 14, 22, 23, 24, 8, 4, 34, 28, 39, 19, 10, 26, 17, 30, 35, 41, 12, 9, 16, 6, 13, 40, 0, 27, 36, 33, 32, 31] # sca 32f
-sorted_indices =  [22, 31, 8, 17, 14, 28, 29, 7, 2, 1, 39, 19, 3, 9, 37, 34, 27, 30, 26, 40, 0, 33, 41, 18, 12, 13, 4, 35, 38, 16, 32, 10] # fpa
+# sorted_indices =  [22, 31, 8, 17, 14, 28, 29, 7, 2, 1, 39, 19, 3, 9, 37, 34, 27, 30, 26, 40, 0, 33, 41, 18, 12, 13, 4, 35, 38, 16, 32, 10] # fpa
+sorted_indices =  [9,19,10,22,21,20,31,2,40,35,30,27,39,32,33,26,3,0,8,24,34,25,18,1,4,12,38,37,11,17,15,16] # factor
+
 top_k_indices = sorted_indices[:K]
 print("K=",K,"top_k_indices",top_k_indices)
 selected_features = top_k_indices

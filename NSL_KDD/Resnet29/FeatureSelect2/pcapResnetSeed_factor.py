@@ -21,7 +21,7 @@ def set_deterministic_seed(seed):
 
 DATA_DIM = 41
 OUTPUT_DIM = 2
-LOSSTYPE = "cb"
+LOSSTYPE = "cb_focal_loss"
 BETA = 0.9999 # 类平衡损失的β gamma 使用cb 因为cb效果最好
 GAMMA = 1
 
