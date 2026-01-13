@@ -5,7 +5,7 @@ import numpy as np
 import csv, os, random
 from pcapVGGSeed import VGG2
 import matplotlib.pyplot as plt
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # 设置随机种子确保结果可复现
 def set_deterministic_seed(seed):
@@ -47,11 +47,11 @@ feature_widths = [
 ]
 # InfFS_S 方法选择的特征
 # features = [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] # infs 32
-features = [35, 27, 31, 25, 23, 22, 15, 16, 8, 6, 1, 9, 12, 14, 5, 38, 39, 3, 21, 36, 32, 13, 34, 10, 2, 20, 4, 18, 11, 26, 0, 17]   # pso
+# features = [35, 27, 31, 25, 23, 22, 15, 16, 8, 6, 1, 9, 12, 14, 5, 38, 39, 3, 21, 36, 32, 13, 34, 10, 2, 20, 4, 18, 11, 26, 0, 17]   # pso
 # features = [31, 22, 24, 26, 10, 35, 8, 21, 25, 2, 1, 12, 4, 32, 3, 16, 9, 28, 17, 34, 15, 14, 20, 27, 13, 23, 5, 0, 37, 38, 39, 40] # sca
 # features = [39, 38, 36, 32, 28, 26, 31, 18, 10, 15, 16, 2, 22, 11, 6, 12, 19, 33, 8, 29, 14, 20, 17, 9, 35, 21, 34, 5, 37, 4, 24, 1] # fpa
-# features = [31,32,2,3,28,35,33,1,9,11,34,36,29,39,27,37,26,40,22,30,21,38,23,7,25,24,8,18,13,16,5,14] # factor
-k = 32
+features = [31,32,2,3,28,35,33,1,9,11,34,36,29,39,27,37,26,40,22,30,21,38,23,7,25,24,8,18,13,16,5,14] # factor
+k = 16
 if __name__ == '__main__':
     # GPU configuration for TensorFlow 2.x
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     selected_features = top_k_indices
 
     # Second phase training with selected features
-    vgg2 = VGG2("ce", dim=len(selected_features), selected_features=selected_features, seed=SEED)
+    vgg2 = VGG2("cb", dim=len(selected_features), selected_features=selected_features, seed=SEED)
     print('start retraining...')
     start_time = time.time()
 

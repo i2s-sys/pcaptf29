@@ -21,8 +21,9 @@ def set_deterministic_seed(seed):
 
 DATA_DIM = 72
 OUTPUT_DIM = 29  # 0-28类
-BETA = 0.999 # 类平衡损失的β
+BETA = 0.9999 # 类平衡损失的β
 GAMMA = 1
+LossType = "cb_focal_loss"
 
 # Hyper Parameters
 LEARNING_RATE = 0.0001
@@ -163,6 +164,8 @@ class Resnet():
         self.seed = seed
         self.maintainCnt = 0
         self.loss_history = []
+        self.lossType = LossType
+        self.gamma = GAMMA
         self.micro_F1List = []
         self.macro_F1List = []
         self.intersection_sets = []
@@ -199,20 +202,25 @@ class Resnet():
     def compute_loss(self, y_true, y_pred):
         l1_regularizer = tf.keras.regularizers.l1(0.001)
         regularization_penalty = l1_regularizer(self.model.scaling_factor)
-        
+
         ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
         class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
         sample_weights = tf.gather(class_weights, y_true)
-        
+
         # 计算Focal Loss的modulator
         softmax_probs = tf.nn.softmax(y_pred)
         labels_one_hot = tf.one_hot(y_true, depth=len(self.weights))
         pt = tf.reduce_sum(labels_one_hot * softmax_probs, axis=1)
-        modulator = tf.pow(1.0 - pt, GAMMA)
+        modulator = tf.pow(1.0 - pt, self.gamma)
         focal_loss = modulator * ce
         cb_focal_loss = tf.multiply(focal_loss, sample_weights)
-        
-        return tf.reduce_sum(cb_focal_loss) + regularization_penalty
+
+        if self.lossType == "ce":
+            return tf.reduce_sum(ce) + regularization_penalty
+        elif self.lossType == "cb":
+            return tf.reduce_sum(tf.multiply(ce, sample_weights)) + regularization_penalty
+        elif self.lossType == "cb_focal_loss":
+            return tf.reduce_sum(cb_focal_loss) + regularization_penalty
 
     @tf.function
     def train_step(self, data, labels):
@@ -446,7 +454,7 @@ class Resnet2():
         ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
         class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
         sample_weights = tf.gather(class_weights, y_true)
-        
+
         # 计算Focal Loss的modulator
         softmax_probs = tf.nn.softmax(y_pred)
         labels_one_hot = tf.one_hot(y_true, depth=len(self.weights))
@@ -454,8 +462,8 @@ class Resnet2():
         modulator = tf.pow(1.0 - pt, GAMMA)
         focal_loss = modulator * ce
         cb_focal_loss = tf.multiply(focal_loss, sample_weights)
-        
-        return tf.reduce_sum(cb_focal_loss)
+
+        return tf.reduce_sum(ce)
 
     @tf.function
     def train_step(self, data, labels):

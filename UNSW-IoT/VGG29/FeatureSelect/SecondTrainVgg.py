@@ -8,7 +8,7 @@ from pcapVGG2Seed import VGG2
 import matplotlib.pyplot as plt
 
 # 设置环境变量
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
 
 # 配置GPU内存增长
@@ -66,14 +66,14 @@ K = 16 # topk 特征
 # sorted_indices = [50,23,18,13,45,40,35,26,16,21,31,12,19,14,20,24,15,27,17,22,25,10,9,68,66,67,38,43,41,36,42,47] # infs
 # sorted_indices = [71, 69, 68, 65, 61, 59, 58, 57, 55, 53, 50, 48, 43, 37, 34, 30, 25, 24, 23, 21, 20, 19, 17, 16, 15, 14, 13, 9, 8, 5, 4, 0] # pso
 # sorted_indices = [14, 70, 3, 12, 62, 55, 23, 25, 61, 20, 51, 56, 24, 18, 15, 21, 48, 13, 17, 9, 59, 26, 32, 68, 5, 67, 66, 71, 8, 7, 69, 65] # sca
-# sorted_indices = [60, 34, 13, 62, 11, 10, 24, 70, 61, 12, 30, 27, 28, 14, 15, 68, 26, 2, 52, 65, 22, 7, 18, 45, 67, 53, 4, 35, 20, 55, 21, 19] # fpa
-sorted_indices = [20,15,25,19,18,21,51,53,33,26,17,31,69,62,70,35,36,49,44,41,38,13,16,68,24,64,29,50,37,57,9,22] # factor
+sorted_indices = [60, 34, 13, 62, 11, 10, 24, 70, 61, 12, 30, 27, 28, 14, 15, 68, 26, 2, 52, 65, 22, 7, 18, 45, 67, 53, 4, 35, 20, 55, 21, 19] # fpa
+# sorted_indices = [20,15,25,19,18,21,51,53,33,26,17,31,69,62,70,35,36,49,44,41,38,13,16,68,24,64,29,50,37,57,9,22] # factor
 
 top_k_indices = sorted_indices[:K]
 print("K=",K,"top_k_indices",top_k_indices)
 selected_features = top_k_indices
 
-vgg2 = VGG2("cb_focal_loss",dim=len(selected_features), selected_features=selected_features,seed=SEED)
+vgg2 = VGG2("ce",dim=len(selected_features), selected_features=selected_features,seed=SEED)
 print('start retraining...')
 
 start_time = time.time()

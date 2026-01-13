@@ -9,7 +9,7 @@ from pcapResnet2 import Resnet2
 import matplotlib.pyplot as plt
 
 # 设置环境变量
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 减少TensorFlow日志输出
 
 # 配置GPU内存增长
@@ -40,7 +40,7 @@ TRAIN_EPOCH = 30
 
 # 从命令行读取 featureNums 参数
 parser = argparse.ArgumentParser(description='Specify number of features.')
-parser.add_argument('--featureNums', type=int, default=16, help='Number of features to select')
+parser.add_argument('--featureNums', type=int, default=32, help='Number of features to select')
 parser.add_argument('--Q', type=int, default=3, help='Number of Q')
 parser.add_argument('--packetSize', type=int, default=1024, help='Whether to use ES feather and factor')
 parser.add_argument('--strategy', type=str, default='none', help='Whether to use ES feather and factor')
@@ -94,8 +94,8 @@ elif args.Q == 6:  # 14
 # all_features = [20,21,11,12,6,8,7,29,17,15,18,16,27,26,4,19,22,10,5,9,13,14,1,35,40,30,39,32,33,0,34,2] #infs
 # all_features = [33, 35, 31, 32, 13, 10, 15, 17, 4, 40, 12, 18, 1, 0, 19, 9, 26, 2, 37, 7, 30, 14, 5, 22, 6, 27, 38, 34, 16, 36, 28, 41] # pso 32f
 # all_features = [38, 37, 29, 2, 14, 22, 23, 24, 8, 4, 34, 28, 39, 19, 10, 26, 17, 30, 35, 41, 12, 9, 16, 6, 13, 40, 0, 27, 36, 33, 32, 31] # sca 32f
-# all_features =  [22, 31, 8, 17, 14, 28, 29, 7, 2, 1, 39, 19, 3, 9, 37, 34, 27, 30, 26, 40, 0, 33, 41, 18, 12, 13, 4, 35, 38, 16, 32, 10] # fpa
-all_features = [33,23,27,1,40,0,35,26,38,34,32,24,25,30,39,2,8,20,28,31,3,22,21,9,11,15,36,17,10,19,37,4] # factor
+all_features =  [22, 31, 8, 17, 14, 28, 29, 7, 2, 1, 39, 19, 3, 9, 37, 34, 27, 30, 26, 40, 0, 33, 41, 18, 12, 13, 4, 35, 38, 16, 32, 10] # fpa
+# all_features = [33,23,27,1,40,0,35,26,38,34,32,24,25,30,39,2,8,20,28,31,3,22,21,9,11,15,36,17,10,19,37,4] # factor
 # 根据 featureNums 参数设置 selected_features 因为24精度最高
 selected_features = all_features[:args.featureNums]
 
