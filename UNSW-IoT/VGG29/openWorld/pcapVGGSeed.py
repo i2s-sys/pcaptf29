@@ -21,13 +21,13 @@ def set_deterministic_seed(seed):
     random.seed(seed)
 
 DATA_DIM = 72 # 特征
-OUTPUT_DIM = 29
+OUTPUT_DIM = 25
 LEARNING_RATE = 0.0001
 BETA = 0.999
 GAMMA = 1
 BATCH_SIZE = 128
-TRAIN_FILE = '../../train_data.csv'
-TEST_FILE = '../../test_data.csv'
+TRAIN_FILE = '../../OWtrain_data2.csv'  #封闭世界 数据集 25个设备
+TEST_FILE = '../../OWtest_data2.csv'
 
 MODEL_SAVE_PATH = './model/'
 MODEL_SAVE_PATH2 = './model2/'
@@ -219,11 +219,7 @@ class VGG():
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
         print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss:.6f}, duration: {epoch_duration:.2f} seconds')
-        
-        micro_F1, macro_F1 = self.test2()
-        self.micro_F1List.append(micro_F1)
-        self.macro_F1List.append(macro_F1)
-        
+
         ''' 早停策略 每次都要'''
         keyFeatureNums = self.K
         scaling_factor_value = self.model.scaling_factor.numpy()
@@ -267,7 +263,7 @@ class VGG():
             for row in csv_reader:
                 data = []
                 for char in row:
-                    if char == 'None':
+                    if char in('None',''):
                         data.append(0)
                     else:
                         data.append(np.float32(char))
@@ -286,7 +282,7 @@ class VGG():
             for row in csv_reader:
                 data = []
                 for char in row:
-                    if char == 'None':
+                    if char in('None',''):
                         data.append(0)
                     else:
                         data.append(np.float32(char))

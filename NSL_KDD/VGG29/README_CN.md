@@ -80,7 +80,7 @@ run_vgg_training.bat 1 cb_focal_loss 3 25 beyes
 # 特征选择训练
 cd FeatureSelect
 # 损失函数实验
-cd Loss
+cd ablationCBLoss
 python pcapTrainVGG_ce.py
 
 # 贝叶斯优化

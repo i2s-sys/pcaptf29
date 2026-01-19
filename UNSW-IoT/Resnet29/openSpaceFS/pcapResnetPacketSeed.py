@@ -1,4 +1,4 @@
-# TensorFlow 2.9.0 compatible ResNet implementation
+# TensorFlow 2.9.0 compatible ResNet implementation for UNSW-IoT FeatureSelect
 import time
 import tensorflow as tf
 from tensorflow import keras
@@ -7,8 +7,8 @@ from sklearn.metrics import f1_score
 import numpy as np
 import csv, random
 
-# Enable eager execution (default in TF 2.x)
-tf.config.run_functions_eagerly(True)
+# 默认保持图执行（graph mode），比强制 eager 更快
+tf.config.run_functions_eagerly(False)
 
 # 设置随机种子确保结果可复现
 def set_deterministic_seed(seed):
@@ -19,30 +19,48 @@ def set_deterministic_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
-DATA_DIM = 41
-OUTPUT_DIM = 2
-LOSSTYPE = "cb"
-BETA = 0.9999 # 类平衡损失的β gamma 使用cb 因为cb效果最好
+OUTPUT_DIM = 20  # 开放1是20 开放2是25类
+TRAINDATA = '../../OWtrain_data1.csv'
+TESTDATA = '../../OWtest_data1.csv'
+BETA = 0.9999 # 类平衡损失的β
 GAMMA = 1
+LossType = "cb_focal_loss"
 
+# Hyper Parameters
 LEARNING_RATE = 0.0001
 BATCH_SIZE = 128
-TRAIN_FILE = '../../train_data.csv'
-TEST_FILE = '../../test_data.csv'
 
-MODEL_SAVE_PATH = './model/'
+MODEL_SAVE_PATH = 'model/'
 MODEL_SAVE_PATH2 = './model2/'
 MODEL_NAME = 'model'
 MODEL_NAME2 = 'model2'
+KEEP_PROB = 0.5
 top_k_values=[]
 top_k_indice=[]
+NUM_ATTENTION_CHANNELS=1
 
-def set_seed(seed):
-    """设置随机种子（保持向后兼容）"""
-    set_deterministic_seed(seed)
+feature_widths = [
+    32, 32, 32, 32,  # fiat_mean, fiat_min, fiat_max, fiat_std
+    32, 32, 32, 32,  # biat_mean, biat_min, biat_max, biat_std
+    32, 32, 32, 32,  # diat_mean, diat_min, diat_max, diat_std
+    32,              # duration 13
+    64, 32, 32, 32, 32,  # fwin_total, fwin_mean, fwin_min, fwin_max, fwin_std
+    64, 32, 32, 32, 32,  # bwin_total, bwin_mean, bwin_min, bwin_max, bwin_std
+    64, 32, 32, 32, 32,  # dwin_total, dwin_mean, dwin_min, dwin_max, dwin_std
+    16, 16, 16,         # fpnum, bpnum, dpnum
+    32, 32, 32, 32,         # bfpnum_rate, fpnum_s, bpnum_s, dpnum_s 22
+    64, 32, 32, 32, 32,  # fpl_total, fpl_mean, fpl_min, fpl_max, fpl_std
+    64, 32, 32, 32, 32,  # bpl_total, bpl_mean, bpl_min, bpl_max, bpl_std
+    64, 32, 32, 32, 32,  # dpl_total, dpl_mean, dpl_min, dpl_max, dwin_std
+    32, 32, 32, 32,         # bfpl_rate, fpl_s, bpl_s, dpl_s  19
+    16, 16, 16, 16, 16, 16, 16, 16,  # fin_cnt, syn_cnt, rst_cnt, pst_cnt, ack_cnt, urg_cnt, cwe_cnt, ece_cnt
+    16, 16, 16, 16,     # fwd_pst_cnt, fwd_urg_cnt, bwd_pst_cnt, bwd_urg_cnt
+    16, 16, 16,         # fp_hdr_len, bp_hdr_len, dp_hdr_len
+    32, 32, 32          # f_ht_len, b_ht_len, d_ht_len 18
+]
 
 class BasicBlock(layers.Layer):
-    def __init__(self, filter_num, stride, seed):
+    def __init__(self, filter_num, stride=1, seed=None):
         super(BasicBlock, self).__init__()
         self.seed = seed
         self.conv1 = layers.Conv2D(filter_num, (3, 3), strides=stride, padding='same',
@@ -70,19 +88,18 @@ class BasicBlock(layers.Layer):
         output = tf.nn.relu(output)
         return output
 
-class ResNetModel(Model):
-    def __init__(self, K, ES_THRESHOLD, seed):
-        super(ResNetModel, self).__init__()
-        self.K = K
-        self.ES_THRESHOLD = ES_THRESHOLD
+class ResNetModel2(Model):
+    def __init__(self, dim, selected_features=[], seed=25, fixed_scaling=None):
+        super(ResNetModel2, self).__init__()
+        self.dim = dim
+        self.selected_features = selected_features
         self.seed = seed
-        
-        # Feature scaling factor for feature selection
-        self.scaling_factor = tf.Variable(
-            tf.constant(1, dtype=tf.float32, shape=[1, DATA_DIM]), 
-            trainable=True,
-            name='scaling_factor'
-        )
+
+        # scaling factor：可训练或冻结
+        if fixed_scaling is not None:
+            self.scaling_factor = tf.constant(fixed_scaling, dtype=tf.float32, name='scaling_factor_fixed')
+        else:
+            self.scaling_factor = tf.Variable(tf.ones([1, dim], dtype=tf.float32), trainable=True, name='scaling_factor')
         
         # Build the ResNet architecture
         self.conv_layer = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same',
@@ -110,11 +127,10 @@ class ResNetModel(Model):
         return res_blocks
     
     def call(self, inputs, training=None):
-        # Apply scaling factor
-        scaling_factor_extended = tf.tile(self.scaling_factor, [tf.shape(inputs)[0], 1])
+        batch_size = tf.shape(inputs)[0]
+        scaling_factor_extended = tf.tile(self.scaling_factor, [batch_size, 1])
         scaled_input = tf.multiply(inputs, scaling_factor_extended)
-        scaled_input = tf.reshape(scaled_input, [tf.shape(inputs)[0], DATA_DIM, 1, 1])
-        
+        scaled_input = tf.reshape(scaled_input, [batch_size, self.dim, 1, 1])
         x = self.stm(scaled_input, training=training)
         x = self.layer1(x, training=training)
         x = self.layer2(x, training=training)
@@ -123,30 +139,25 @@ class ResNetModel(Model):
         x = self.avgpool(x)
         return self.fc(x)
 
-class Resnet():
-    def __init__(self, K, ES_THRESHOLD, seed):
-        self.K = K
-        self.ES_THRESHOLD = ES_THRESHOLD
+class Resnet2():
+    def __init__(self,dim,selected_features=[],seed=25, fixed_scaling=None):
+        self.dim = dim
+        self.top_k_indices = selected_features
         self.seed = seed
-        self.lossType = LOSSTYPE
-        set_seed(seed)
-        self.maintainCnt = 0
-        self.loss_history = []
-        self.micro_F1List = []
-        self.macro_F1List = []
-        self.intersection_sets = []
-        self.TSMRecord = []
-        self.earlyStop = False
-        print(f"BETA = {BETA}, GAMMA = {GAMMA}")
         self.learning_rate = LEARNING_RATE
         self.batch_size = BATCH_SIZE
         self.epoch_count = 0
+        self.loss_history = []
+        self.micro_F1List = []
+        self.macro_F1List = []
+        self.eval_batch_size = max(BATCH_SIZE, 512)
         
         self.init_data()
-        self.total_iterations_per_epoch = self.train_length // BATCH_SIZE
+        # ceil 取整，避免丢弃最后不足一个 batch 的数据
+        self.total_iterations_per_epoch = max(1, (self.train_length + BATCH_SIZE - 1) // BATCH_SIZE)
         
         # Create the model
-        self.model = ResNetModel(K, ES_THRESHOLD, seed)
+        self.model = ResNetModel2(dim=len(selected_features), selected_features=selected_features, seed=self.seed, fixed_scaling=fixed_scaling)
         
         # Setup optimizer
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
@@ -166,30 +177,19 @@ class Resnet():
             self.weights[key] = new_value
 
     def compute_loss(self, y_true, y_pred):
-        l1_regularizer = tf.keras.regularizers.l1(0.001)
-        regularization_penalty = l1_regularizer(self.model.scaling_factor)
-
         ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
         class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
-        
-        # cb
         sample_weights = tf.gather(class_weights, y_true)
-        cbce = tf.multiply(ce, sample_weights)
-        
-        # cbfocalLoss
+
+        # 计算Focal Loss的modulator
         softmax_probs = tf.nn.softmax(y_pred)
         labels_one_hot = tf.one_hot(y_true, depth=len(self.weights))
         pt = tf.reduce_sum(labels_one_hot * softmax_probs, axis=1)
         modulator = tf.pow(1.0 - pt, GAMMA)
         focal_loss = modulator * ce
         cb_focal_loss = tf.multiply(focal_loss, sample_weights)
-        
-        if (self.lossType == "ce"):
-            return tf.reduce_sum(ce) + regularization_penalty
-        elif (self.lossType == "cb"):
-            return tf.reduce_sum(cbce) + regularization_penalty
-        elif (self.lossType == "cb_focal_loss"):
-            return tf.reduce_sum(cb_focal_loss) + regularization_penalty
+
+        return tf.reduce_sum(cb_focal_loss)
 
     @tf.function
     def train_step(self, data, labels):
@@ -206,40 +206,27 @@ class Resnet():
         total_loss = 0
         num_batches = 0
         epoch_start_time = time.time()
+        # 随机打乱训练数据
+        np.random.shuffle(self.train_data)
         
-        for _ in range(self.total_iterations_per_epoch):
-            batch = self.get_a_train_batch(_)
+        for step in range(self.total_iterations_per_epoch):
+            batch = self.get_a_train_batch(step)
             data, label = self.get_data_label(batch)
             
-            # Convert to tensors
-            data_tensor = tf.constant(data, dtype=tf.float32)
-            label_tensor = tf.constant(label, dtype=tf.int32)
-            
-            loss = self.train_step(data_tensor, label_tensor)
+            loss = self.train_step(data, label)
             total_loss += loss.numpy()
             num_batches += 1
         
         average_loss = total_loss / num_batches
         self.loss_history.append(average_loss)
-        
+        # micro_F1, macro_F1 = self.test2()
+        # self.micro_F1List.append(micro_F1)
+        # self.macro_F1List.append(macro_F1)
+        #
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
-        print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss}, duration: {epoch_duration:.2f} seconds')
-        
-        # Early stopping strategy
-        keyFeatureNums = self.K
-        values, indices = tf.math.top_k(self.model.scaling_factor, k=keyFeatureNums, sorted=True)
-        max_indices = indices.numpy()[0]
-        max_set = set(max_indices)
-        self.intersection_sets.append(max_set)
-        
-        if len(self.intersection_sets) > self.ES_THRESHOLD:
-            self.intersection_sets.pop(0)
-        if len(self.intersection_sets) >= self.ES_THRESHOLD:
-            intersection = set.intersection(*self.intersection_sets)
-            print(f"Epoch {self.epoch_count + 1}, Intersection size: {len(intersection)}")
-            self.TSMRecord.append(len(intersection))
-        
+        print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss:.6f}, duration: {epoch_duration:.2f} seconds')
+
         if self.epoch_count == 0:
             delta_loss = 0
             self.count = 0
@@ -271,43 +258,36 @@ class Resnet():
         self.train_data = []
         self.test_data = []
         self.label_status = {}
-        filename = TRAIN_FILE
-        csv_reader = csv.reader(open(filename))
-        label_data = [[] for _ in range(6)]
+        label_data = {i: [] for i in range(29)}
         
-        for row in csv_reader:
-            data = []
-            for char in row:
-                if char == 'None':
-                    data.append(0)
-                else:
-                    data.append(np.float32(char))
+        def process_row(row):
+            data = [0 if char in ('None', '') else np.float32(char) for char in row]
             label = int(data[-1])
-            if label < 6:  # 只保留0到5类的数据
-                label_data[label].append(data)
-            if self.label_status.get(str(label), 0) > 0:
-                self.label_status[str(label)] += 1
-            else:
-                self.label_status[str(label)] = 1
+            label_data[label].append(data)
+            self.label_status[str(label)] = self.label_status.get(str(label), 0) + 1
         
-        self.train_data = sum(label_data, [])
+        with open(TRAINDATA, mode="r", encoding="utf-8") as f:
+            csv_reader = csv.reader(f)
+            for row in csv_reader:
+                process_row(row)
         
-        filename = TEST_FILE
-        csv_reader = csv.reader(open(filename))
-        for row in csv_reader:
-            data = []
-            for char in row:
-                if char == 'None':
-                    data.append(0)
-                else:
-                    data.append(np.float32(char))
-            self.test_data.append(data)
-        
-        self.train_data = self.normalization(self.train_data)
-        self.test_data = self.normalization(self.test_data)
+        self.train_data = [data for label in label_data.values() for data in label]
+
+        with open(TESTDATA, mode="r", encoding="utf-8") as f:
+            csv_reader = csv.reader(f)
+            self.test_data = [
+                [0 if char in ('None', '') else np.float32(char) for char in row]
+                for row in csv_reader
+            ]
+
         self.train_length = len(self.train_data)
         self.test_length = len(self.test_data)
-        np.random.shuffle(self.train_data)
+        self.train_data = self.normalization(self.train_data)
+        self.test_data = self.normalization(self.test_data)
+        # 转成 numpy 数组，便于后续切片与向量化
+        self.train_data = np.array(self.train_data, dtype=np.float32)
+        self.test_data = np.array(self.test_data, dtype=np.float32)
+        self.test_features, self.test_labels = self._prepare_test_arrays()
         print('init data completed!')
 
     def normalization(self, minibatch):
@@ -324,50 +304,61 @@ class Resnet():
 
     def predict_top_k(self, x_feature, k=5):
         x_tensor = tf.constant([x_feature], dtype=tf.float32)
-        predict = self.model(x_tensor, training=False)[0]
-        top_k_indices = np.argsort(predict.numpy())[-k:][::-1]
-        return top_k_indices
+        logits = self.model(x_tensor, training=False)[0]
+        _, top_k_indices = tf.nn.top_k(logits, k=k)
+        return top_k_indices.numpy()
+
+    def predict_top_k_batch(self, features, k=5):
+        """按 batch 进行推理，返回 shape=(N, k) 的 top-k 索引，显著加速评估。"""
+        topk_list = []
+        total = features.shape[0]
+        for start in range(0, total, self.eval_batch_size):
+            end = min(start + self.eval_batch_size, total)
+            batch = tf.constant(features[start:end], dtype=tf.float32)
+            logits = self.model(batch, training=False)
+            _, topk = tf.nn.top_k(logits, k=k)
+            topk_list.append(topk.numpy())
+        return np.vstack(topk_list)
+
+    def _prepare_test_arrays(self):
+        """把测试集拆成 features 和 labels 数组，便于向量化计算。"""
+        test_np = np.array(self.test_data)
+        features = test_np[:, :-1].astype(np.float32)
+        labels = test_np[:, -1].astype(np.int32)
+        return features, labels
 
     def test(self):
+        features, labels = self._prepare_test_arrays()
+        topk_all = self.predict_top_k_batch(features, k=5)
+
+        preds = topk_all[:, 0]
+        length = len(labels)
+
+        # top-k 命中统计（向量化）
+        top1_hits = (preds == labels)
+        top3_hits = (topk_all[:, :3] == labels[:, None]).any(axis=1)
+        top5_hits = (topk_all[:, :5] == labels[:, None]).any(axis=1)
+
+        top1_correct = top1_hits.sum()
+        top3_correct = top3_hits.sum()
+        top5_correct = top5_hits.sum()
+
+        # 按标签的准确率统计
         label_count = {}
         label_correct = {}
-        length = len(self.test_data)
-        count = 0
-        top1_correct = 0
-        top3_correct = 0
-        top5_correct = 0
-        y_true = []
-        y_pred = []
-        
-        for row in self.test_data:
-            feature = row[0:-1]
-            label = row[-1]
-            count += 1
-            x_feature = np.array(feature)
-            top_k_labels = self.predict_top_k(x_feature, k=5)
-            y_true.append(label)
-            y_pred.append(top_k_labels[0])
+        for y, hit in zip(labels, top1_hits):
+            key = str(int(y))
+            label_count[key] = label_count.get(key, 0) + 1
+            if hit:
+                label_correct[key] = label_correct.get(key, 0) + 1
 
-            if str(int(label)) not in label_count:
-                label_count[str(int(label))] = 0
-                label_correct[str(int(label))] = 0
-            if label == top_k_labels[0]:
-                label_correct[str(int(label))] += 1
-                top1_correct += 1
-            if label in top_k_labels[:3]:
-                top3_correct += 1
-            if label in top_k_labels[:5]:
-                top5_correct += 1
-            label_count[str(int(label))] += 1
-            
-            if count % 10000 == 0:
-                print(f"Processed {count} rows")
-        
         accuracy1 = {}
-        for label in sorted(label_count):
-            accuracy1[label] = label_correct[label] / label_count[label]
-            print(label, accuracy1[label], label_correct[label], label_count[label])
-        
+        for key in sorted(label_count):
+            correct = label_correct.get(key, 0)
+            cnt = label_count[key]
+            accuracy1[key] = correct / cnt if cnt else 0.0
+            print(key, accuracy1[key], correct, cnt)
+
         top1_accuracy = top1_correct / length
         top3_accuracy = top3_correct / length
         top5_accuracy = top5_correct / length
@@ -375,24 +366,19 @@ class Resnet():
         print(f"Top-3 accuracy: {top3_accuracy}")
         print(f"Top-5 accuracy: {top5_accuracy}")
 
-        macro_f1 = f1_score(y_true, y_pred, average='macro')
-        micro_f1 = f1_score(y_true, y_pred, average='micro')
+        macro_f1 = f1_score(labels, preds, average='macro')
+        micro_f1 = f1_score(labels, preds, average='micro')
         print(f"Macro-F1: {macro_f1}")
         print(f"Micro-F1: {micro_f1}")
-
+        return top1_accuracy
+    
     def test2(self):
-        y_true = []
-        y_pred = []
-        for row in self.test_data:
-            feature = row[0:-1]
-            label = row[-1]
-            x_feature = np.array(feature)
-            top_k_labels = self.predict_top_k(x_feature, k=5)
-            y_true.append(label)
-            y_pred.append(top_k_labels[0])
-        
-        macro_f1 = f1_score(y_true, y_pred, average='macro')
-        micro_f1 = f1_score(y_true, y_pred, average='micro')
+        features, labels = self._prepare_test_arrays()
+        topk_all = self.predict_top_k_batch(features, k=5)
+        preds = topk_all[:, 0]
+
+        macro_f1 = f1_score(labels, preds, average='macro')
+        micro_f1 = f1_score(labels, preds, average='micro')
         print(f"Macro-F1: {macro_f1}")
         print(f"Micro-F1: {micro_f1}")
         return macro_f1, micro_f1

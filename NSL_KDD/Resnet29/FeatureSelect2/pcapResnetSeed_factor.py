@@ -225,11 +225,7 @@ class Resnet():
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
         print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss}, duration: {epoch_duration:.2f} seconds')
-        
-        macro_F1, micro_F1 = self.test2()
-        self.macro_F1List.append(macro_F1)
-        self.micro_F1List.append(micro_F1)
-        
+
         # Early stopping strategy
         keyFeatureNums = self.K
         values, indices = tf.math.top_k(self.model.scaling_factor, k=keyFeatureNums, sorted=True)

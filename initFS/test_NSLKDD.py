@@ -1,7 +1,7 @@
 import numpy as np
 from InfFS_S import inf_fs_s
 
-data = np.loadtxt("../../datasets/NSL_KDD/train_data.csv", delimiter=",")
+data = np.loadtxt("../UNSW-IoT/OWtrain_data2.csv", delimiter=",")
 X = data[:, :-1]
 Y = data[:, -1]
 
@@ -11,9 +11,10 @@ alpha = [0.33, 0.33, 0.34]
 # 运行 Inf-FS
 RANKED, WEIGHT, SUBSET = inf_fs_s(X, Y, alpha)
 
-print("特征重要性排序 (前 K):", RANKED[:16])
-print("对应权重 (前 K):", WEIGHT[RANKED[:16]])
+print("特征重要性排序 (前 K):", RANKED[:32])
+print("对应权重 (前 K):", WEIGHT[RANKED[:32]])
 print("选择的特征子集:", SUBSET)
+
 # NSL-KDD
 # [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40,35,39,30,7,34,29,36,18] 32
 # [4,5,0,22,32,31,23,15,12,2,3,9,11,16,33,25,24,38,37,28,1,27,26,40] 24

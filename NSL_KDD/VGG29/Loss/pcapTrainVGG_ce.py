@@ -42,7 +42,7 @@ if __name__ == '__main__':
     model = VGG("ce", SEED, 0.9999, 1)
     start_time = time.time()
     
-    print("开始训练VGG模型 - Cross-Entropy Loss")
+    print("开始训练VGG模型 - Cross-Entropy ablationCBLoss")
     
     for epoch in range(EPOCH_NUM):
         print(f"\n=== Epoch {epoch + 1}/{EPOCH_NUM} ===")

@@ -37,11 +37,17 @@ top_k_values=[]
 top_k_indice=[]
 
 class VGGModel2(Model):
-    def __init__(self, dim, selected_features=[], seed=25):
+    def __init__(self, dim, selected_features=[], seed=25, fixed_scaling=None):
         super(VGGModel2, self).__init__()
         self.dim = dim
         self.selected_features = selected_features
         self.seed = seed
+
+        # scaling factor: frozen or trainable
+        if fixed_scaling is not None:
+            self.scaling_factor = tf.constant(fixed_scaling, dtype=tf.float32, name='scaling_factor_fixed')
+        else:
+            self.scaling_factor = tf.Variable(tf.ones([1, dim], dtype=tf.float32), trainable=True, name='scaling_factor')
         
         # Build VGG architecture
         self.conv1_1 = layers.Conv2D(64, (3, 3), activation='relu', padding='same',
@@ -86,7 +92,10 @@ class VGGModel2(Model):
                                kernel_initializer=tf.keras.initializers.glorot_uniform(seed=self.seed))
     
     def call(self, inputs, training=None):
-        scaled_input = tf.reshape(inputs, [tf.shape(inputs)[0], self.dim, 1, 1])
+        batch_size = tf.shape(inputs)[0]
+        scaling_factor_extended = tf.tile(self.scaling_factor, [batch_size, 1])
+        scaled_input = tf.multiply(inputs, scaling_factor_extended)
+        scaled_input = tf.reshape(scaled_input, [batch_size, self.dim, 1, 1])
         
         # VGG forward pass
         x = self.conv1_1(scaled_input)
@@ -112,7 +121,7 @@ class VGGModel2(Model):
         return self.fc3(x)
 
 class VGG2(): # 第二次训练
-    def __init__(self,lossType,dim,selected_features=[],seed=25):  # 需输入维度 即当前特征数
+    def __init__(self,lossType,dim,selected_features=[],seed=25, fixed_scaling=None):  # 需输入维度 即当前特征数
         self.lossType = lossType
         set_deterministic_seed(seed)
         self.gamma = GAMMA
@@ -130,7 +139,7 @@ class VGG2(): # 第二次训练
         self.total_iterations_per_epoch = max(1, (self.train_length + BATCH_SIZE - 1) // BATCH_SIZE)
 
         # Create the model
-        self.model = VGGModel2(dim=dim, selected_features=selected_features, seed=self.seed)
+        self.model = VGGModel2(dim=dim, selected_features=selected_features, seed=self.seed, fixed_scaling=fixed_scaling)
         
         # Setup optimizer
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
@@ -199,10 +208,6 @@ class VGG2(): # 第二次训练
         average_loss = total_loss / num_batches
         self.loss_history.append(average_loss)
         
-        micro_F1, macro_F1 = self.test2()
-        self.micro_F1List.append(micro_F1)
-        self.macro_F1List.append(macro_F1)
-        
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
         print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss:.6f}, duration: {epoch_duration:.2f} seconds')
@@ -225,45 +230,28 @@ class VGG2(): # 第二次训练
         self.test_data = []
         self.label_status = {}
 
-        # 初始化标签数据字典
-        label_data = {i: [] for i in range(29)}
+        self.train_data = []
+        self.test_data = []
+        self.label_status = {}
 
-        # 读取训练数据
-        filename = TRAIN_FILE
-        with open(filename, 'r') as file:
+        def process_row_train(row):
+            data = [0 if char in('None','') else np.float32(char) for char in row]
+            label = int(data[-1])
+            self.train_data.append(data)
+            self.label_status[str(label)] = self.label_status.get(str(label), 0) + 1
+
+        with open(TRAIN_FILE, 'r') as file:
             csv_reader = csv.reader(file)
+            next(csv_reader, None)
             for row in csv_reader:
-                data = []
-                for i, char in enumerate(row):
-                    if i in self.top_k_indices or i == len(row) - 1:
-                        if char == 'None':
-                            data.append(0)
-                        else:
-                            data.append(np.float32(char))
+                process_row_train(row)
 
-                label = int(data[-1])
-                if label in label_data:
-                    label_data[label].append(data)
-
-                if str(label) not in self.label_status:
-                    self.label_status[str(label)] = 0
-                self.label_status[str(label)] += 1
-
-        self.train_data = [item for sublist in label_data.values() for item in sublist]
-
-        # 读取测试数据
-        filename = TEST_FILE
-        with open(filename, 'r') as file:
+        with open(TEST_FILE, 'r') as file:
             csv_reader = csv.reader(file)
-            for row in csv_reader:
-                data = []
-                for i, char in enumerate(row):
-                    if i in self.top_k_indices or i == len(row) - 1:
-                        if char == 'None':
-                            data.append(0)
-                        else:
-                            data.append(np.float32(char))
-                self.test_data.append(data)
+            self.test_data = [
+                [0 if char in('None','') else np.float32(char) for char in row]
+                for row in csv_reader
+            ]
 
         self.train_length = len(self.train_data)
         self.test_length = len(self.test_data)

@@ -77,7 +77,7 @@ python pcapTrainResPacket_ES2_4.py  # K=4 features
 ### Running Loss Function Experiments
 
 ```bash
-cd Loss
+cd ablationCBLoss
 python pcapTrainResPure_ce.py  # Cross-entropy loss
 ```
 

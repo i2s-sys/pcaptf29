@@ -1,4 +1,4 @@
-# TensorFlow 2.9.0 compatible ResNet with feature selection (UNSW-NB)
+# TensorFlow 2.9.0 compatible pure ResNet implementation for ablationCBLoss testing
 import time
 import tensorflow as tf
 from tensorflow import keras
@@ -19,27 +19,28 @@ def set_deterministic_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
-DATA_DIM = 42
+DATA_DIM = 41 # 特征
 OUTPUT_DIM = 2
-BETA = 0.9999  # 类平衡损失的β gamma UNSW-NB数据集这两个参数效果最好
-GAMMA = 1
-LOSSTYPE = "cb_focal_loss"
-
 LEARNING_RATE = 0.0001
-BATCH_SIZE = 64
-TRAIN_FILE = '../../train_data.csv'
-TEST_FILE = '../../test_data.csv'
+BATCH_SIZE = 128
+TRAIN_FILE = '../train_data_S.csv'
+TEST_FILE = '../test_data_S.csv'
 
 MODEL_SAVE_PATH = './model/'
 MODEL_SAVE_PATH2 = './model2/'
 MODEL_NAME = 'model'
 MODEL_NAME2 = 'model2'
-top_k_values = []
-top_k_indice = []
+top_k_values=[]
+top_k_indice=[]
+
+def set_seed(seed):
+    """设置随机种子（保持向后兼容）"""
+    set_deterministic_seed(seed)
 
 class BasicBlock(layers.Layer):
     def __init__(self, filter_num, stride, seed):
         super(BasicBlock, self).__init__()
+        set_seed(seed)
         self.seed = seed
         self.conv1 = layers.Conv2D(filter_num, (3, 3), strides=stride, padding='same',
                                    kernel_initializer=tf.keras.initializers.glorot_uniform(seed=self.seed))
@@ -57,28 +58,21 @@ class BasicBlock(layers.Layer):
     
     def call(self, inputs, training=None):
         out = self.conv1(inputs)
-        out = self.bn1(out)
+        out = self.bn1(out, training=training)
         out = self.relu(out)
         out = self.conv2(out)
-        out = self.bn2(out)
+        out = self.bn2(out, training=training)
         identity = self.downsample(inputs)
         output = layers.add([out, identity])
         output = tf.nn.relu(output)
         return output
 
 class ResNetModel(Model):
-    def __init__(self, seed=None):
+    def __init__(self, seed):
         super(ResNetModel, self).__init__()
         self.seed = seed
         
-        # Feature scaling factor for feature selection
-        self.scaling_factor = tf.Variable(
-            tf.constant(1, dtype=tf.float32, shape=[1, DATA_DIM]), 
-            trainable=True,
-            name='scaling_factor'
-        )
-        
-        # Initial convolution layer
+        # Build the ResNet architecture
         self.conv_layer = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same',
                                         kernel_initializer=tf.keras.initializers.glorot_uniform(seed=self.seed))
         self.stm = Sequential([
@@ -88,14 +82,11 @@ class ResNetModel(Model):
             layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='same')
         ])
         
-        # ResNet layers
         layer_dims = [2, 2, 2, 2]
         self.layer1 = self.build_resblock(64, layer_dims[0])
         self.layer2 = self.build_resblock(128, layer_dims[1], stride=2)
         self.layer3 = self.build_resblock(256, layer_dims[2], stride=2)
         self.layer4 = self.build_resblock(512, layer_dims[3], stride=2)
-        
-        # Global average pooling and classification
         self.avgpool = layers.GlobalAveragePooling2D()
         self.fc = layers.Dense(OUTPUT_DIM)
     
@@ -107,50 +98,40 @@ class ResNetModel(Model):
         return res_blocks
     
     def call(self, inputs, training=None):
-        # Apply scaling factor
-        batch_size = tf.shape(inputs)[0]
-        scaling_factor_extended = tf.tile(self.scaling_factor, [batch_size, 1])
-        scaled_input = tf.multiply(inputs, scaling_factor_extended)
-        scaled_input = tf.reshape(scaled_input, [batch_size, DATA_DIM, 1, 1])
-        
-        x = self.stm(scaled_input)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        scaled_input = tf.reshape(inputs, [-1, DATA_DIM, 1, 1])
+        x = self.stm(scaled_input, training=training)
+        x = self.layer1(x, training=training)
+        x = self.layer2(x, training=training)
+        x = self.layer3(x, training=training)
+        x = self.layer4(x, training=training)
         x = self.avgpool(x)
         return self.fc(x)
 
 class Resnet():
-    def __init__(self, K, ES_THRESHOLD, seed=25):
-        set_deterministic_seed(seed)
-        self.K = K
-        self.ES_THRESHOLD = ES_THRESHOLD
+    def __init__(self, lossType, seed, beta, gamma):
+        print(f"BETA = {beta}, GAMMA = {gamma}")
+        self.beta = beta
+        self.gamma = gamma
+        set_seed(seed)
+        self.learning_rate = LEARNING_RATE
+        self.batch_size = BATCH_SIZE
+        self.lossType = lossType
         self.seed = seed
-        self.lossType = LOSSTYPE
-        self.maintainCnt = 0
+        self.epoch_count = 0
         self.loss_history = []
         self.micro_F1List = []
         self.macro_F1List = []
-        self.intersection_sets = []
-        self.TSMRecord = []
-        self.earlyStop = False
-        print(f"BETA = {BETA}, GAMMA = {GAMMA}")
-        self.learning_rate = LEARNING_RATE
-        self.batch_size = BATCH_SIZE
-        self.epoch_count = 0
         
         self.init_data()
         self.total_iterations_per_epoch = self.train_length // BATCH_SIZE
         
         # Create the model
-        self.model = ResNetModel(seed=self.seed)
+        self.model = ResNetModel(seed)
         
         # Setup optimizer
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         
-        # Calculate class weights
-        beta = BETA
+        # Calculate class weights for CB loss
         ClassNum = len(self.label_status)
         effective_num = {}
         for key, value in self.label_status.items():
@@ -163,86 +144,82 @@ class Resnet():
             new_value = effective_num[key] / total_effective_num * ClassNum
             self.weights[key] = new_value
 
-    def compute_loss(self, logits, labels):
-        l1_regularizer = tf.keras.regularizers.l1(0.001)
-        regularization_penalty = l1_regularizer(self.model.scaling_factor)
-        
-        ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+    def compute_loss(self, y_true, y_pred):
+        ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
         class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
         
-        # CB (Class Balanced)
-        sample_weights = tf.gather(class_weights, labels)
+        # cb
+        sample_weights = tf.gather(class_weights, y_true)
         cbce = tf.multiply(ce, sample_weights)
         
-        # CB Focal ablationCBLoss
-        softmax_probs = tf.nn.softmax(logits)
-        labels_one_hot = tf.one_hot(labels, depth=len(self.weights))
+        # cbfocalLoss
+        softmax_probs = tf.nn.softmax(y_pred)
+        labels_one_hot = tf.one_hot(y_true, depth=len(self.weights))
         pt = tf.reduce_sum(labels_one_hot * softmax_probs, axis=1)
-        modulator = tf.pow(1.0 - pt, GAMMA)
+        modulator = tf.pow(1.0 - pt, self.gamma)
         focal_loss = modulator * ce
         cb_focal_loss = tf.multiply(focal_loss, sample_weights)
         
         if self.lossType == "ce":
-            return tf.reduce_sum(ce) + regularization_penalty
+            return tf.reduce_sum(ce)
         elif self.lossType == "cb":
-            return tf.reduce_sum(cbce) + regularization_penalty
+            return tf.reduce_sum(cbce)
         elif self.lossType == "cb_focal_loss":
-            return tf.reduce_sum(cb_focal_loss) + regularization_penalty
-        else:
-            return tf.reduce_sum(ce) + regularization_penalty
+            return tf.reduce_sum(cb_focal_loss)
 
     @tf.function
     def train_step(self, data, labels):
         with tf.GradientTape() as tape:
-            logits = self.model(data, training=True)
-            loss = self.compute_loss(logits, labels)
+            predictions = self.model(data, training=True)
+            loss = self.compute_loss(labels, predictions)
         
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         
-        return loss, logits
+        return loss
 
     def train(self):
         total_loss = 0
         num_batches = 0
         epoch_start_time = time.time()
         
-        # 随机打乱训练数据
-        np.random.shuffle(self.train_data)
-        
-        for step in range(self.total_iterations_per_epoch):
-            batch = self.get_a_train_batch(step)
+        for _ in range(self.total_iterations_per_epoch):
+            batch = self.get_a_train_batch(_)
             data, label = self.get_data_label(batch)
             
-            loss, logits = self.train_step(data, label)
+            # Convert to tensors
+            data_tensor = tf.constant(data, dtype=tf.float32)
+            label_tensor = tf.constant(label, dtype=tf.int32)
+            
+            loss = self.train_step(data_tensor, label_tensor)
             total_loss += loss.numpy()
             num_batches += 1
         
         average_loss = total_loss / num_batches
         self.loss_history.append(average_loss)
+        
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
-
-        print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss:.6f}, duration: {epoch_duration:.2f} seconds')
+        print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss}, duration: {epoch_duration:.2f} seconds')
         
-        # 早停策略
-        keyFeatureNums = self.K
-        values, indices = tf.math.top_k(self.model.scaling_factor, k=keyFeatureNums, sorted=True)
-        max_indices = indices.numpy()[0]
-        max_set = set(max_indices)
-        self.intersection_sets.append(max_set)
+        macro_F1, micro_F1 = self.test2()
+        self.micro_F1List.append(micro_F1)
+        self.macro_F1List.append(macro_F1)
         
-        if len(self.intersection_sets) > self.ES_THRESHOLD:
-            self.intersection_sets.pop(0)
+        if self.epoch_count == 0:
+            delta_loss = 0
+            self.count = 0
+            self.curr_loss = average_loss
+        else:
+            self.prev_loss = self.curr_loss
+            self.curr_loss = average_loss
+            delta_loss = abs(self.curr_loss - self.prev_loss)
+            if delta_loss <= 0.03:
+                self.count += 1
+            else:
+                self.count = 0
         
-        if len(self.intersection_sets) > 0:
-            intersection = set.intersection(*self.intersection_sets)
-            print(f"Epoch {self.epoch_count + 1}, Intersection size: {len(intersection)}")
-            if len(intersection) == self.K and self.epoch_count > self.ES_THRESHOLD:
-                self.earlyStop = True
-            self.TSMRecord.append(len(intersection))
-        
-        return micro_F1
+        return delta_loss, self.count, micro_F1
 
     def get_a_train_batch(self, step):
         min_index = step * self.batch_size
@@ -261,46 +238,59 @@ class Resnet():
         self.test_data = []
         self.valid_data = []
         self.label_status = {}
-        label_data = {i: [] for i in range(OUTPUT_DIM)}
-
-        def process_row(row):
-            data = [0 if char == 'None' else np.float32(char) for char in row]
+        
+        # Initialize train data
+        filename = TRAIN_FILE
+        csv_reader = csv.reader(open(filename))
+        label_data = [[] for _ in range(OUTPUT_DIM)]
+        
+        for row in csv_reader:
+            data = []
+            for char in row:
+                if char == 'None':
+                    data.append(0)
+                else:
+                    data.append(np.float32(char))
             label = int(data[-1])
-            label_data[label].append(data)
-            self.label_status[str(label)] = self.label_status.get(str(label), 0) + 1
-
-        # Processing training file
-        with open(TRAIN_FILE, mode="r", encoding="utf-8-sig") as f:
-            csv_reader = csv.reader(f)
-            next(csv_reader)  # Skip header if exists
-            for row in csv_reader:
-                process_row(row)
-
-        self.train_data = [data for label in label_data.values() for data in label]
-
-        # Processing test file and splitting data
-        test_data_temp = {i: [] for i in range(OUTPUT_DIM)}
-        with open(TEST_FILE, mode="r", encoding="utf-8-sig") as f:
-            csv_reader = csv.reader(f)
-            for row in csv_reader:
-                data = [0 if char == 'None' else np.float32(char) for char in row]
-                label = int(data[-1])
-                test_data_temp[label].append(data)
-
-        # Splitting test data into test and validation sets
-        for label, data in test_data_temp.items():
-            split_idx = int(len(data) * 2 / 3)  # 2/3 for test, 1/3 for validation
-            self.test_data.extend(data[:split_idx])
-            self.valid_data.extend(data[split_idx:])
-
-        # Normalizing data
+            if label < OUTPUT_DIM:
+                label_data[label].append(data)
+            if self.label_status.get(str(label), 0) > 0:
+                self.label_status[str(label)] += 1
+            else:
+                self.label_status[str(label)] = 1
+        
+        self.train_data = sum(label_data, [])
+        
+        # Initialize test and validation data
+        filename = TEST_FILE
+        csv_reader = csv.reader(open(filename))
+        label_data = [[] for _ in range(OUTPUT_DIM)]
+        
+        for row in csv_reader:
+            data = []
+            for char in row:
+                if char == 'None':
+                    data.append(0)
+                else:
+                    data.append(np.float32(char))
+            label = int(data[-1])
+            if label < OUTPUT_DIM:
+                label_data[label].append(data)
+        
+        # Split label data into validation and test sets
+        for label in range(OUTPUT_DIM):
+            num_samples = len(label_data[label])
+            num_valid = max(1, num_samples // 3)
+            self.valid_data.extend(label_data[label][:num_valid])
+            self.test_data.extend(label_data[label][num_valid:])
+        
         self.train_data = self.normalization(self.train_data)
-        self.test_data = self.normalization(self.test_data)
         self.valid_data = self.normalization(self.valid_data)
-        np.random.shuffle(self.train_data)
+        self.test_data = self.normalization(self.test_data)
         self.train_length = len(self.train_data)
-        self.test_length = len(self.test_data)
         self.valid_length = len(self.valid_data)
+        self.test_length = len(self.test_data)
+        
         print('init data completed!')
 
     def normalization(self, minibatch):
@@ -330,9 +320,9 @@ class Resnet():
         return self.valid_data[min_index:max_index]
 
     def predict_top_k(self, x_features, k=5):
-        logits = self.model(x_features, training=False)
-        predicts = tf.nn.softmax(logits).numpy()
-        top_k_indices = [np.argsort(predict)[-k:][::-1] for predict in predicts]
+        data_tensor = tf.constant(x_features, dtype=tf.float32)
+        predicts = self.model(data_tensor, training=False)
+        top_k_indices = [np.argsort(predict.numpy())[-k:][::-1] for predict in predicts]
         return top_k_indices
 
     def test(self):
@@ -351,13 +341,12 @@ class Resnet():
             top_k_labels = self.predict_top_k(data, k=5)
             y_true.extend(labels)
             y_pred.extend([labels[0] for labels in top_k_labels])
-
+            
             for label, top_k in zip(labels, top_k_labels):
                 label_str = str(int(label))
                 if label_str not in label_count:
                     label_count[label_str] = 0
                     label_correct[label_str] = 0
-
                 if label == top_k[0]:
                     label_correct[label_str] += 1
                     top1_correct += 1
@@ -366,7 +355,7 @@ class Resnet():
                 if label in top_k[:5]:
                     top5_correct += 1
                 label_count[label_str] += 1
-
+            
             if step % 100 == 0:
                 print(f"Processed {step * self.batch_size} rows")
         

@@ -158,7 +158,7 @@ class VGG2():
         sample_weights = tf.gather(class_weights, labels)
         cbce = tf.multiply(ce, sample_weights)
         
-        # CB Focal Loss
+        # CB Focal ablationCBLoss
         softmax_probs = tf.nn.softmax(logits)
         labels_one_hot = tf.one_hot(labels, depth=len(self.weights))
         pt = tf.reduce_sum(labels_one_hot * softmax_probs, axis=1)

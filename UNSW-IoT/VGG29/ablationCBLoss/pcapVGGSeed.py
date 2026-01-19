@@ -21,13 +21,13 @@ def set_deterministic_seed(seed):
     random.seed(seed)
 
 DATA_DIM = 72 # 特征
-OUTPUT_DIM = 29
+OUTPUT_DIM = 25
 LEARNING_RATE = 0.0001
 BETA = 0.999
 GAMMA = 1
 BATCH_SIZE = 128
-TRAIN_FILE = '../../train_data.csv'
-TEST_FILE = '../../test_data.csv'
+TRAIN_FILE = '../../OWtrain_data2.csv'  #封闭世界 数据集 25个设备
+TEST_FILE = '../../OWtest_data2.csv'
 
 MODEL_SAVE_PATH = './model/'
 MODEL_SAVE_PATH2 = './model2/'
@@ -124,7 +124,7 @@ class VGGModel(Model):
         return self.fc3(x)
 
 class VGG():
-    def __init__(self,K,lossType,ES_THRESHOLD,seed):  # 不输入维度 默认是DATA_DIM
+    def __init__(self, K, lossType, ES_THRESHOLD, seed):  # 不输入维度 默认是DATA_DIM
         self.ES_THRESHOLD = ES_THRESHOLD
         set_deterministic_seed(seed)
         self.K = K
@@ -150,34 +150,39 @@ class VGG():
         # Setup optimizer
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         
-        # Calculate class weights for CB loss
-        ClassNum = len(self.label_status)
-        effective_num = {}
-        for key, value in self.label_status.items():
-            new_value = (1.0 - BETA) / (1.0 - np.power(BETA, value))
-            effective_num[key] = new_value
-        
-        total_effective_num = sum(effective_num.values())
-        self.weights = {}
-        for key, value in effective_num.items():
-            new_value = effective_num[key] / total_effective_num * ClassNum
-            self.weights[key] = new_value
+        # Calculate class weights for CB loss when enabled
+        self.weights = None
+        if self.lossType in ("cb", "cb_focal_loss"):
+            ClassNum = len(self.label_status)
+            effective_num = {}
+            for key, value in self.label_status.items():
+                new_value = (1.0 - BETA) / (1.0 - np.power(BETA, value))
+                effective_num[key] = new_value
+
+            total_effective_num = sum(effective_num.values())
+            self.weights = {}
+            for key, value in effective_num.items():
+                new_value = effective_num[key] / total_effective_num * ClassNum
+                self.weights[key] = new_value
 
     def compute_loss(self, y_true, y_pred):
         l1_regularizer = tf.keras.regularizers.l1(0.001)
         regularization_penalty = l1_regularizer(self.model.scaling_factor)
         
         ce = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
-        class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
-        sample_weights = tf.gather(class_weights, y_true)
+        class_weights = None
+        sample_weights = None
+        if self.weights is not None:
+            class_weights = tf.constant([self.weights[str(i)] for i in range(len(self.weights))], dtype=tf.float32)
+            sample_weights = tf.gather(class_weights, y_true)
         
         # 计算Focal Loss的modulator
         softmax_probs = tf.nn.softmax(y_pred)
-        labels_one_hot = tf.one_hot(y_true, depth=len(self.weights))
+        labels_one_hot = tf.one_hot(y_true, depth=(len(self.weights) if self.weights is not None else OUTPUT_DIM))
         pt = tf.reduce_sum(labels_one_hot * softmax_probs, axis=1)
         modulator = tf.pow(1.0 - pt, self.gamma)
         focal_loss = modulator * ce
-        cb_focal_loss = tf.multiply(focal_loss, sample_weights)
+        cb_focal_loss = tf.multiply(focal_loss, sample_weights) if sample_weights is not None else None
         
         if self.lossType == "ce":
             return tf.reduce_sum(ce) + regularization_penalty
@@ -219,11 +224,7 @@ class VGG():
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
         print(f'Epoch {self.epoch_count + 1} completed, average loss: {average_loss:.6f}, duration: {epoch_duration:.2f} seconds')
-        
-        micro_F1, macro_F1 = self.test2()
-        self.micro_F1List.append(micro_F1)
-        self.macro_F1List.append(macro_F1)
-        
+
         ''' 早停策略 每次都要'''
         keyFeatureNums = self.K
         scaling_factor_value = self.model.scaling_factor.numpy()
@@ -267,7 +268,7 @@ class VGG():
             for row in csv_reader:
                 data = []
                 for char in row:
-                    if char == 'None':
+                    if char in('None',''):
                         data.append(0)
                     else:
                         data.append(np.float32(char))
@@ -286,7 +287,7 @@ class VGG():
             for row in csv_reader:
                 data = []
                 for char in row:
-                    if char == 'None':
+                    if char in('None',''):
                         data.append(0)
                     else:
                         data.append(np.float32(char))

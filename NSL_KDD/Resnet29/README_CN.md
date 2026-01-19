@@ -122,14 +122,14 @@ python pcapTrainResPacket_ES2_4.py
 测试多个K值（1,2,4,8,16,24,32）的特征选择效果：
 ```bash
 cd NSL_KDD/resnet29/FeatureSelect2
-python TrainResnet_factor.py
+python firstTrain.py
 ```
 
 ### 方法3: 损失函数实验
 
 使用交叉熵损失训练纯ResNet：
 ```bash
-cd NSL_KDD/resnet29/Loss
+cd NSL_KDD/resnet29/ablationCBLoss
 python pcapTrainResPure_ce.py
 ```
 
